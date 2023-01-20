@@ -76,11 +76,9 @@ fn compute_betweenness_and_closeness(infile: &str, outfile: &str) {
     let mut max_betweenness: f64 = 0.0;
     let mut min_closeness: f64 = 10000.0;
     let mut max_closeness: f64 = 0.0;
-    let mut num_connections = vec!(0;agraph.len());
-    let mut n: usize = 0;
-    for connections in agraph.iter() {
+    let mut num_connections = vec![0; agraph.len()];
+    for (n, connections) in agraph.iter().enumerate() {
         num_connections[n] = connections.len();
-        n += 1;
     }
     for between in betweenness.iter() {
         if *between < min_betweenness {
@@ -135,9 +133,8 @@ fn main() {
 #[allow(dead_code)]
 fn remove_file_if_exists(filepath: &str) {
     let rs = fs::metadata(filepath).is_ok();
-    if rs == true {
-        fs::remove_file(filepath)
-        .expect("File delete failed");
+    if rs {
+        fs::remove_file(filepath).expect("File delete failed");
     }
 }
 
