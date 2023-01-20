@@ -17,7 +17,7 @@ pub struct Node {
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct CrunchyState {
-    agraph_length: u32,
+    agraph_length: usize,
     elapsed: f64,
     nodes: Vec<Node>,
     min_betweenness: f64,
@@ -27,7 +27,7 @@ pub struct CrunchyState {
 }
 
 #[allow(dead_code)]
-#[derive(Default, Clone, Deserialize)]
+#[derive(Default, Deserialize)]
 pub struct NetworkSummary {
     num_known_nodes: usize,
     num_good_nodes: usize,
@@ -41,28 +41,21 @@ pub struct NetworkSummary {
 }
 
 #[allow(dead_code)]
-#[derive(Default, Clone, Deserialize)]
+#[derive(Default, Deserialize)]
 pub struct JsonRpcResponse {
     jsonrpc: String,
     result: NetworkSummary,
     id: usize,
 }
 
-#[derive(Default, Clone, Deserialize)]
-pub struct ResponseSample {
-    pub response: JsonRpcResponse,
-}
-
 pub fn load_response(filepath: &str) -> JsonRpcResponse {
-    let jstring = fs::read_to_string(filepath).unwrap();
-    let response: JsonRpcResponse = serde_json::from_str(&jstring).unwrap();
-    response
+    let jstring = fs::read_to_string(filepath).expect("could not open response file");
+    serde_json::from_str(&jstring).unwrap()
 }
 
 pub fn load_state(filepath: &str) -> CrunchyState {
-    let jstring = fs::read_to_string(filepath).unwrap();
-    let response: CrunchyState = serde_json::from_str(&jstring).unwrap();
-    response
+    let jstring = fs::read_to_string(filepath).expect("could not open state file");
+    serde_json::from_str(&jstring).unwrap()
 }
 
 fn compute_betweenness_and_closeness(infile: &str, outfile: &str) {
@@ -76,11 +69,8 @@ fn compute_betweenness_and_closeness(infile: &str, outfile: &str) {
     let mut max_betweenness: f64 = 0.0;
     let mut min_closeness: f64 = 10000.0;
     let mut max_closeness: f64 = 0.0;
-    let mut num_connections = vec![0; agraph.len()];
-    for (n, connections) in agraph.iter().enumerate() {
-        num_connections[n] = connections.len();
-    }
-    for between in betweenness.iter() {
+
+    for between in &betweenness {
         if *between < min_betweenness {
             min_betweenness = *between;
         }
@@ -88,7 +78,7 @@ fn compute_betweenness_and_closeness(infile: &str, outfile: &str) {
             max_betweenness = *between;
         }
     }
-    for close in closeness.iter() {
+    for close in &closeness {
         if *close < min_closeness {
             min_closeness = *close;
         }
@@ -96,7 +86,7 @@ fn compute_betweenness_and_closeness(infile: &str, outfile: &str) {
             max_closeness = *close;
         }
     }
-    let mut nodes = Vec::new();
+    let mut nodes = Vec::with_capacity(agraph.len());
     for i in 0..agraph.len() {
         let node: Node = Node {
             ip: response.result.node_ips[i].clone(),
@@ -108,7 +98,7 @@ fn compute_betweenness_and_closeness(infile: &str, outfile: &str) {
     }
 
     let state = CrunchyState {
-        agraph_length: agraph.len() as u32,
+        agraph_length: agraph.len(),
         elapsed: elapsed.as_secs_f64(),
         nodes,
         min_betweenness,
@@ -116,7 +106,7 @@ fn compute_betweenness_and_closeness(infile: &str, outfile: &str) {
         min_closeness,
         max_closeness,
     };
-    let joutput: String = serde_json::to_string(&state).unwrap();
+    let joutput = serde_json::to_string(&state).unwrap();
     fs::write(outfile, joutput).unwrap();
 }
 
@@ -130,24 +120,16 @@ fn main() {
     compute_betweenness_and_closeness(&args[1], &args[2]);
 }
 
-#[allow(dead_code)]
-fn remove_file_if_exists(filepath: &str) {
-    let rs = fs::metadata(filepath).is_ok();
-    if rs {
-        fs::remove_file(filepath).expect("File delete failed");
-    }
-}
-
 #[test]
 fn test_state_output() {
-    let infile: String = String::from("testdata/sample.json");
-    let outfile: String = String::from("testdata/state.json");
-    remove_file_if_exists(&outfile);
-    compute_betweenness_and_closeness(&infile, &outfile);
-    let state = load_state(&outfile);
-    let size: u32 = 2531;
+    let infile = "testdata/sample.json";
+    let outfile = "testdata/state.json";
+    let _ = fs::remove_file(outfile);
+    compute_betweenness_and_closeness(infile, outfile);
+    let state = load_state(outfile);
+    let size: usize = 2531;
     assert_eq!(state.agraph_length, size);
-    assert_eq!(state.nodes.len(), size as usize);
+    assert_eq!(state.nodes.len(), size);
     assert!((state.min_betweenness - 0.0).abs() < f64::EPSILON);
     assert!((state.max_betweenness - 0.0006471174062683313).abs() < f64::EPSILON);
     assert!((state.min_closeness - 1.9965036212494205).abs() < f64::EPSILON);
