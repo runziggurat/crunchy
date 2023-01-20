@@ -148,13 +148,13 @@ fn test_state_output() {
     let size: u32 = 2531;
     assert_eq!(state.agraph_length, size);
     assert_eq!(state.nodes.len(), size as usize);
-    assert!(state.min_betweenness - 0.0 < f64::EPSILON);
-    assert!(state.max_betweenness - 0.0006471174062683313 < f64::EPSILON);
-    assert!(state.min_closeness - 1.9965036212494205 < f64::EPSILON);
-    assert!(state.max_closeness - 2.9965618988763065 < f64::EPSILON);
+    assert!((state.min_betweenness - 0.0).abs() < f64::EPSILON);
+    assert!((state.max_betweenness - 0.0006471174062683313).abs()  < f64::EPSILON);
+    assert!((state.min_closeness - 1.9965036212494205).abs()  < f64::EPSILON);
+    assert!((state.max_closeness - 2.9965618988763065).abs()  < f64::EPSILON);
     let node = state.nodes[5].clone();
     assert_eq!(node.ip, "38.242.199.182");
     assert_eq!(node.num_connections, 378);
-    assert!(node.betweenness - 0.000244483600836513 < f64::EPSILON);
-    assert!(node.closeness - 2.0013493455674 < f64::EPSILON);
+    assert!((node.betweenness - 0.000244483600836513).abs()  < f64::EPSILON);
+    assert!((node.closeness - 2.0013493455674).abs()  < f64::EPSILON);
 }
