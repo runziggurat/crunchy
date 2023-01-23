@@ -117,9 +117,9 @@ fn main() {
         println!("E.g.:     \x1b[93mcargo run --release testdata/sample.json testdata/state.json\x1b[0m\n");
         return;
     }
-    if !fs::metadata(&args[1]).is_ok() {
+    if fs::metadata(&args[1]).is_err() {
         println!("{}: No such file or directory", &args[1]);
-        return
+        return;
     }
     write_state(&args[1], &args[2]);
 }
