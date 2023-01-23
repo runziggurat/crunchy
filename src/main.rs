@@ -58,7 +58,7 @@ pub fn load_state(filepath: &str) -> CrunchyState {
     serde_json::from_str(&jstring).unwrap()
 }
 
-fn compute_betweenness_and_closeness(infile: &str, outfile: &str) {
+fn write_state(infile: &str, outfile: &str) {
     let response = load_response(infile);
     let agraph = response.result.agraph;
     let graph: Graph<usize> = Graph::new();
@@ -117,7 +117,7 @@ fn main() {
         println!("E.g.:     \x1b[93mcargo run --release testdata/sample.json testdata/state.json\x1b[0m\n");
         return;
     }
-    compute_betweenness_and_closeness(&args[1], &args[2]);
+    write_state(&args[1], &args[2]);
 }
 
 #[test]
@@ -125,7 +125,7 @@ fn test_state_output() {
     let infile = "testdata/sample.json";
     let outfile = "testdata/state.json";
     let _ = fs::remove_file(outfile);
-    compute_betweenness_and_closeness(infile, outfile);
+    write_state(infile, outfile);
     let state = load_state(outfile);
     let size: usize = 2531;
     assert_eq!(state.agraph_length, size);
