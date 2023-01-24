@@ -1,3 +1,5 @@
+[![dependency status](https://deps.rs/repo/github/runziggurat/crunchy/status.svg)](https://deps.rs/repo/github/runziggurat/crunchy)
+
 # crunchy
 P2P network crawler data cruncher for graph metrics
 
