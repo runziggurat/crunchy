@@ -167,7 +167,7 @@ async fn write_state(infile: &str, outfile: &str, cachefile: &str) {
 async fn main() {
     let args: Vec<String> = env::args().collect();
 
-    /// TODO(asmie): could be refactored to use eg. clap crate.
+    // TODO(asmie): could be refactored to use eg. clap crate.
     if args.len() != 4 {
         println!("\n\nUsage is: cargo run <in-sample.json> <out-state.json> <geoip-cache.json> ");
         println!("E.g.:     \x1b[93mcargo run --release testdata/sample.json testdata/state.json\x1b[0m\n");
