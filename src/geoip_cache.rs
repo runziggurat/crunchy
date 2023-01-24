@@ -14,7 +14,7 @@ struct CacheEntry {
     pub entry: GeoIPInfo,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize)]
 struct GeoCache {
     pub entries: HashMap<IpAddr, CacheEntry>,
 }
@@ -35,7 +35,7 @@ impl GeoIPCache {
         Self {
             providers: Vec::new(),
             cache_file: cache_file.to_owned(),
-            cache: Arc::new(RwLock::new(GeoCache::new())),
+            cache: Arc::new(RwLock::new(GeoCache::default())),
         }
     }
 
@@ -103,13 +103,5 @@ impl GeoIPCache {
         }
 
         None
-    }
-}
-
-impl GeoCache {
-    pub fn new() -> Self {
-        Self {
-            entries: HashMap::new(),
-        }
     }
 }
