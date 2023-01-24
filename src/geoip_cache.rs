@@ -79,26 +79,24 @@ impl GeoIPCache {
             }
         }
 
-        {
-            // Beeing here means that we didn't find the entry in cache.
+        if remove_entry {
             let mut rw_cache = self.cache.write().await;
+            rw_cache.entries.remove(&ip);
+        }
 
-            if remove_entry {
-                rw_cache.entries.remove(&ip);
-            }
-
-            for provider in self.providers.iter() {
-                let entry = provider.lookup(ip).await;
-                if let Ok(entry) = entry {
-                    rw_cache.entries.insert(
-                        ip,
-                        CacheEntry {
-                            last_updated: SystemTime::now(),
-                            entry,
-                        },
-                    );
-                    return Some(rw_cache.entries.get(&ip).unwrap().entry.clone());
-                }
+        for provider in self.providers.iter() {
+            let entry = provider.lookup(ip).await;
+            if let Ok(entry) = entry {
+                let mut rw_cache = self.cache.write().await;
+                let ret_entry = entry.clone();
+                rw_cache.entries.insert(
+                    ip,
+                    CacheEntry {
+                        last_updated: SystemTime::now(),
+                        entry,
+                    },
+                );
+                return Some(ret_entry);
             }
         }
 
