@@ -11,7 +11,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 use spectre::{graph::AGraph, graph::Graph};
-use ziggurat_core_geoip::geoip::GeoIPInfo;
+use ziggurat_core_geoip::geoip::GeoInfo;
 use ziggurat_core_geoip::providers::ip2loc::Ip2LocationService;
 use ziggurat_core_geoip::providers::ipgeoloc::{BackendProvider, IpGeolocateService};
 
@@ -23,7 +23,7 @@ pub struct Node {
     betweenness: f64,
     closeness: f64,
     num_connections: usize,
-    geolocation: Option<GeoIPInfo>,
+    geolocation: Option<GeoInfo>,
 }
 
 #[derive(Default, Clone, Serialize, Deserialize)]
