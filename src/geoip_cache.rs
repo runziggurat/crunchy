@@ -6,7 +6,7 @@ use std::time::SystemTime;
 use std::{collections::HashMap, fs, io, time::Duration};
 use tokio::sync::RwLock;
 
-use ziggurat_core_geoip::geoip::{GeoInfo, GeoIPService};
+use ziggurat_core_geoip::geoip::{GeoIPService, GeoInfo};
 
 #[derive(Clone, Serialize, Deserialize)]
 struct CachedIp {
