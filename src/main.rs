@@ -187,9 +187,13 @@ async fn main() {
     let arg_conf = ArgConfiguration::parse();
     let mut configuration: CrunchyConfiguration;
 
-    configuration = arg_conf.config_file.map(|path| {
-        CrunchyConfiguration::new(path.to_str().unwrap()).expect("could not load configuration file")
-    }).unwrap_or_default();
+    configuration = arg_conf
+        .config_file
+        .map(|path| {
+            CrunchyConfiguration::new(path.to_str().unwrap())
+                .expect("could not load configuration file")
+        })
+        .unwrap_or_default();
 
     // Override configuration with command line arguments if provided
     if arg_conf.input_sample.is_some() {
@@ -202,7 +206,7 @@ async fn main() {
         configuration.geoip_config.geocache_file_path = arg_conf.geocache_file.unwrap();
     }
 
-    if  !configuration.input_file_path.as_ref().unwrap().is_file() {
+    if !configuration.input_file_path.as_ref().unwrap().is_file() {
         println!(
             "{}: No such file or directory",
             configuration
