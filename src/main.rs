@@ -187,25 +187,22 @@ async fn main() {
     let arg_conf = ArgConfiguration::parse();
     let mut configuration: CrunchyConfiguration;
 
-    if let Some(config_file_path) = arg_conf.config_file {
-        configuration = CrunchyConfiguration::new(&config_file_path)
-            .expect("configuration file could not be loaded or parsed");
-    } else {
-        configuration = CrunchyConfiguration::default();
-    }
+    configuration = arg_conf.config_file.map(|path| {
+        CrunchyConfiguration::new(path.to_str().unwrap()).expect("could not load configuration file")
+    }).unwrap_or_default();
 
     // Override configuration with command line arguments if provided
-    if let Some(input_sample) = arg_conf.input_sample {
-        configuration.input_file_path = Some(PathBuf::from(input_sample));
+    if arg_conf.input_sample.is_some() {
+        configuration.input_file_path = arg_conf.input_sample;
     }
-    if let Some(out_state) = arg_conf.out_state {
-        configuration.state_file_path = Some(PathBuf::from(out_state));
+    if arg_conf.out_state.is_some() {
+        configuration.state_file_path = arg_conf.out_state;
     }
-    if let Some(geocache_file) = arg_conf.geocache_file {
-        configuration.geoip_config.geocache_file_path = PathBuf::from(geocache_file);
+    if arg_conf.geocache_file.is_some() {
+        configuration.geoip_config.geocache_file_path = arg_conf.geocache_file.unwrap();
     }
 
-    if fs::metadata(configuration.input_file_path.as_ref().unwrap()).is_err() {
+    if  !configuration.input_file_path.as_ref().unwrap().is_file() {
         println!(
             "{}: No such file or directory",
             configuration
@@ -224,17 +221,17 @@ async fn main() {
 #[clap(author = "Ziggurat Team", version, about, long_about = None)]
 pub struct ArgConfiguration {
     /// Input file with sample data to process (overrides input from config file)
-    #[clap(short, long)]
-    pub input_sample: Option<String>,
+    #[clap(short, long, value_parser)]
+    pub input_sample: Option<PathBuf>,
     /// Output file with state of the graph (overrides output from config file)
-    #[clap(short, long)]
-    pub out_state: Option<String>,
+    #[clap(short, long, value_parser)]
+    pub out_state: Option<PathBuf>,
     /// Output file with geolocation cache (overrides cache from config file)
-    #[clap(short, long)]
-    pub geocache_file: Option<String>,
+    #[clap(short, long, value_parser)]
+    pub geocache_file: Option<PathBuf>,
     /// Configuration file path (if none defaults will be assumed)
-    #[clap(short, long)]
-    pub config_file: Option<String>,
+    #[clap(short, long, value_parser)]
+    pub config_file: Option<PathBuf>,
 }
 
 #[cfg(test)]
