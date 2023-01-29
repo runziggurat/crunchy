@@ -185,9 +185,7 @@ async fn write_state(config: &CrunchyConfiguration) {
 #[tokio::main]
 async fn main() {
     let arg_conf = ArgConfiguration::parse();
-    let mut configuration: CrunchyConfiguration;
-
-    configuration = arg_conf
+    let mut configuration = arg_conf
         .config_file
         .map(|path| {
             CrunchyConfiguration::new(path.to_str().unwrap())
@@ -207,7 +205,7 @@ async fn main() {
     }
 
     if !configuration.input_file_path.as_ref().unwrap().is_file() {
-        println!(
+        eprintln!(
             "{}: No such file or directory",
             configuration
                 .input_file_path
