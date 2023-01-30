@@ -194,14 +194,14 @@ async fn main() {
         .unwrap_or_default();
 
     // Override configuration with command line arguments if provided
-    if arg_conf.input_sample.is_some() {
-        configuration.input_file_path = arg_conf.input_sample;
+    if let Some(input_file) = arg_conf.input_sample {
+        configuration.input_file_path = Some(input_file);
     }
-    if arg_conf.out_state.is_some() {
-        configuration.state_file_path = arg_conf.out_state;
+    if let Some(state_file) = arg_conf.out_state {
+        configuration.state_file_path = Some(state_file);
     }
-    if arg_conf.geocache_file.is_some() {
-        configuration.geoip_config.geocache_file_path = arg_conf.geocache_file.unwrap();
+    if let Some(geocache_file) = arg_conf.geocache_file {
+        configuration.geoip_config.geocache_file_path = geocache_file;
     }
 
     if !configuration.input_file_path.as_ref().unwrap().is_file() {
