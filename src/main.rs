@@ -16,7 +16,6 @@ use crate::config::CrunchyConfiguration;
 use crate::nodes::{create_nodes, Node};
 use serde::{Deserialize, Serialize};
 use spectre::graph::AGraph;
-// use ziggurat_core_geoip::geoip::GeoInfo;
 use ziggurat_core_geoip::providers::ip2loc::Ip2LocationService;
 use ziggurat_core_geoip::providers::ipgeoloc::{BackendProvider, IpGeolocateService};
 
@@ -205,13 +204,9 @@ mod tests {
         let size: usize = 2531;
         assert_eq!(state.agraph_length, size);
         assert_eq!(state.nodes.len(), size);
-        // assert!((state.min_betweenness - 0.0).abs() < f64::EPSILON);
-        // assert!((state.max_betweenness - 0.0006471174062683313).abs() < f64::EPSILON);
-        // assert!((state.min_closeness - 1.9965036212494205).abs() < f64::EPSILON);
-        // assert!((state.max_closeness - 2.9965618988763065).abs() < f64::EPSILON);
         let node = state.nodes[5].clone();
         assert_eq!(node.ip, "38.242.199.182");
-        // assert_eq!(node.num_onnections, 378);
+        assert_eq!(node.connections.len(), 378);
         assert!((node.betweenness - 0.000244483600836513).abs() < f64::EPSILON);
         assert!((node.closeness - 2.0013493455674).abs() < f64::EPSILON);
     }
