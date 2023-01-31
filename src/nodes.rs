@@ -30,7 +30,7 @@ pub fn set_column_positions(nodes: &mut Vec<Node>) -> HashMap<String, u32> {
                     // make unique every 0.2, so multiply by 5, convert to integer
                     let ilatitude: i32 = (latitude * 5.0).floor() as i32;
                     let ilongitude: i32 = (longitude * 5.0).floor() as i32;
-                    let geostr = format!("{}:{}", ilatitude, ilongitude);
+                    let geostr = format!("{ilatitude}:{ilongitude}");
                     column_stats
                         .entry(geostr.clone())
                         .and_modify(|count| *count += 1)
@@ -52,7 +52,7 @@ pub fn set_column_sizes(nodes: &mut Vec<Node>, column_stats: &mut HashMap<String
                 if let Some(longitude) = geoinfo.longitude {
                     let ilatitude: i32 = (latitude * 5.0).floor() as i32;
                     let ilongitude: i32 = (longitude * 5.0).floor() as i32;
-                    let geostr = format!("{}:{}", ilatitude, ilongitude);
+                    let geostr = format!("{ilatitude}:{ilongitude}");
                     if let Some(count) = column_stats.get(&geostr) {
                         node.column_size = *count;
                     }
