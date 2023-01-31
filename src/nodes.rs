@@ -59,11 +59,11 @@ pub fn set_column_sizes(nodes: &mut Vec<Node>, column_stats: &mut HashMap<String
 
 pub async fn create_nodes(
     agraph: &Vec<Vec<usize>>,
-    node_ips: &Vec<String>,
+    node_ips: &[String],
     geo_cache: &GeoIPCache,
 ) -> Vec<Node> {
     let graph: Graph<usize> = Graph::new();
-    let (betweenness, closeness) = graph.compute_betweenness_and_closeness(&agraph);
+    let (betweenness, closeness) = graph.compute_betweenness_and_closeness(agraph);
     let mut nodes = Vec::with_capacity(agraph.len());
     for i in 0..agraph.len() {
         let node: Node = Node {
