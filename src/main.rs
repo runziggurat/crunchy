@@ -1,5 +1,6 @@
 mod config;
 mod geoip_cache;
+mod nodes;
 use clap::Parser;
 
 use crate::geoip_cache::GeoIPCache;
@@ -12,24 +13,12 @@ use std::{
 };
 
 use crate::config::CrunchyConfiguration;
+use crate::nodes::{create_nodes, Node};
 use serde::{Deserialize, Serialize};
-use spectre::{graph::AGraph, graph::Graph};
-use ziggurat_core_geoip::geoip::GeoInfo;
+use spectre::graph::AGraph;
+// use ziggurat_core_geoip::geoip::GeoInfo;
 use ziggurat_core_geoip::providers::ip2loc::Ip2LocationService;
 use ziggurat_core_geoip::providers::ipgeoloc::{BackendProvider, IpGeolocateService};
-
-//TODO(asmie): there is some redundancy here as we have ip in the Node structure and one more time
-// in the GeoIPInfo structure.
-#[derive(Default, Clone, Serialize, Deserialize)]
-pub struct Node {
-    ip: String,
-    betweenness: f64,
-    closeness: f64,
-    column_position: u32,
-    column_size: u32,
-    connections: Vec<usize>,
-    geolocation: Option<GeoInfo>,
-}
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct CrunchyState {
@@ -69,74 +58,6 @@ pub fn load_state(filepath: &str) -> CrunchyState {
     let jstring = fs::read_to_string(filepath).expect("could not open state file");
     serde_json::from_str(&jstring).unwrap()
 }
-
-
-pub fn compute_columns(nodes: &mut Vec<Node>) -> HashMap<String,u32> {
-    let mut column_stats: HashMap<String,u32> = HashMap::new();
-    for node in nodes {
-        if let Some(geoinfo) = &node.geolocation {
-            if let Some(latitude) = geoinfo.latitude {
-                if let Some(longitude) = geoinfo.longitude {
-                    let ilatitude: i32 = (latitude * 5.0).floor() as i32;
-                    let ilongitude: i32 = (longitude * 5.0).floor() as i32;
-                    let geostr =  format!("{}:{}", ilatitude, ilongitude);
-                    column_stats.entry(geostr.clone()).and_modify(|count| *count += 1).or_insert(1);
-                    node.column_position = column_stats[&geostr];
-                }
-            }
-        }
-    }
-    column_stats
-}
-
-pub fn set_column_positions(nodes: &mut Vec<Node>, column_stats: &mut HashMap<String,u32>) {
-    for node in nodes {
-        if let Some(geoinfo) = &node.geolocation {
-            if let Some(latitude) = geoinfo.latitude {
-                if let Some(longitude) = geoinfo.longitude {
-                    let ilatitude: i32 = (latitude * 5.0).floor() as i32;
-                    let ilongitude: i32 = (longitude * 5.0).floor() as i32;
-                    let geostr = format!("{}:{}", ilatitude, ilongitude);
-                    if let Some(count) = column_stats.get(&geostr) {
-                        node.column_size = *count;
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-async fn create_nodes(network_summary: &NetworkSummary, geo_cache: &GeoIPCache) -> Vec<Node> {
-    let graph: Graph<usize> = Graph::new();
-    let agraph: &Vec<Vec<usize>> = &network_summary.agraph;
-    let (betweenness, closeness) = graph.compute_betweenness_and_closeness(&agraph);
-    let mut nodes = Vec::with_capacity(agraph.len());
-    for i in 0..agraph.len() {
-        let node: Node = Node {
-            ip: network_summary.node_ips[i].clone(),
-            betweenness: betweenness[i],
-            closeness: closeness[i],
-            column_position: 0,
-            column_size: 0,
-            connections: agraph[i].clone(),
-            geolocation: geo_cache
-                .lookup(
-                    network_summary.node_ips[i]
-                        .parse()
-                        .expect("malformed IP address"),
-                )
-                .await,
-        };
-        nodes.push(node);
-    }
-
-    let mut column_stats = compute_columns(&mut nodes);
-    set_column_positions(&mut nodes, &mut column_stats);
-    nodes
-}
-
-
 
 //TODO(asmie): this NEED to be refactorized as currently it is method-level smell (too long)
 // doing too many things. Especially, when I'd like to add here some other stuff like peer sharing it would
@@ -189,12 +110,17 @@ async fn write_state(config: &CrunchyConfiguration) {
         )));
     }
 
-    let nodes = create_nodes(&response.result, &geo_cache).await;
+    let nodes = create_nodes(
+        &response.result.agraph,
+        &response.result.node_ips,
+        &geo_cache,
+    )
+    .await;
 
     let state = CrunchyState {
         agraph_length: response.result.agraph.len(),
         elapsed: elapsed.as_secs_f64(),
-        nodes
+        nodes,
     };
 
     // Save all changes done to the cache
