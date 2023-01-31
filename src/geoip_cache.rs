@@ -1,11 +1,12 @@
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::SystemTime;
 use std::{collections::HashMap, fs, io, time::Duration};
 use tokio::sync::RwLock;
 
+use crate::config::{GeoIPConfiguration, DEFAULT_KEEP_IN_CACHE_DAYS};
 use ziggurat_core_geoip::geoip::{GeoIPService, GeoInfo};
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -27,15 +28,20 @@ pub struct GeoIPCache {
     cache_file: PathBuf,
     /// Cache entries.
     cache: Arc<RwLock<GeoCache>>,
+    /// How many days to keep the cache entries.
+    keep_in_cache_days: u16,
 }
 
 impl GeoIPCache {
     /// Create a new GeoIP cache.
-    pub fn new(cache_file: &Path) -> Self {
+    pub fn new(config: &GeoIPConfiguration) -> Self {
         Self {
             providers: Vec::new(),
-            cache_file: cache_file.to_owned(),
+            cache_file: config.geocache_file_path.clone(),
             cache: Arc::new(RwLock::new(GeoCache::default())),
+            keep_in_cache_days: config
+                .keep_in_cache_days
+                .unwrap_or(DEFAULT_KEEP_IN_CACHE_DAYS),
         }
     }
 
@@ -92,7 +98,9 @@ impl GeoIPCache {
             let res = cache.entries.get(&ip);
             if let Some(entry) = res {
                 // Check if the entry is not too old.
-                if entry.last_updated.elapsed().unwrap() < Duration::from_secs(60 * 60 * 24 * 14) {
+                if entry.last_updated.elapsed().unwrap()
+                    < Duration::from_secs(60 * 60 * 24 * self.keep_in_cache_days as u64)
+                {
                     return Some(entry.info.clone());
                 }
                 remove_entry = true;

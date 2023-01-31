@@ -54,6 +54,18 @@ The generated output contains processed data that our renderer can directly use.
 ### Command Line
 
 ```
-cargo run --release testdata/sample.json testdata/state.json testdata/geoip-cache.json
+Usage: ziggurat-crunchy [OPTIONS]
+
+Options:
+  -i, --input-sample <INPUT_SAMPLE>    Input file with sample data to process (overrides input from config file)
+  -o, --out-state <OUT_STATE>          Output file with state of the graph (overrides output from config file)
+  -g, --geocache-file <GEOCACHE_FILE>  Output file with geolocation cache (overrides cache from config file)
+  -c, --config-file <CONFIG_FILE>      Configuration file path (if none defaults will be assumed)
+  -h, --help                           Print help
+  -V, --version                        Print version
 ```
 
+Example:
+```
+cargo run --release -- -i testdata/sample.json -o testdata/state.json -g testdata/geoip-cache.json
+```
