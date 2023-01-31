@@ -25,7 +25,9 @@ pub struct Node {
     ip: String,
     betweenness: f64,
     closeness: f64,
-    num_connections: usize,
+    column_position: u32,
+    column_size: u32,
+    connections: Vec<usize>,
     geolocation: Option<GeoInfo>,
 }
 
@@ -34,10 +36,6 @@ pub struct CrunchyState {
     agraph_length: usize,
     elapsed: f64,
     nodes: Vec<Node>,
-    min_betweenness: f64,
-    max_betweenness: f64,
-    min_closeness: f64,
-    max_closeness: f64,
 }
 
 #[allow(dead_code)]
@@ -72,6 +70,74 @@ pub fn load_state(filepath: &str) -> CrunchyState {
     serde_json::from_str(&jstring).unwrap()
 }
 
+
+pub fn compute_columns(nodes: &mut Vec<Node>) -> HashMap<String,u32> {
+    let mut column_stats: HashMap<String,u32> = HashMap::new();
+    for node in nodes {
+        if let Some(geoinfo) = &node.geolocation {
+            if let Some(latitude) = geoinfo.latitude {
+                if let Some(longitude) = geoinfo.longitude {
+                    let ilatitude: i32 = (latitude * 5.0).floor() as i32;
+                    let ilongitude: i32 = (longitude * 5.0).floor() as i32;
+                    let geostr =  format!("{}:{}", ilatitude, ilongitude);
+                    column_stats.entry(geostr.clone()).and_modify(|count| *count += 1).or_insert(1);
+                    node.column_position = column_stats[&geostr];
+                }
+            }
+        }
+    }
+    column_stats
+}
+
+pub fn set_column_positions(nodes: &mut Vec<Node>, column_stats: &mut HashMap<String,u32>) {
+    for node in nodes {
+        if let Some(geoinfo) = &node.geolocation {
+            if let Some(latitude) = geoinfo.latitude {
+                if let Some(longitude) = geoinfo.longitude {
+                    let ilatitude: i32 = (latitude * 5.0).floor() as i32;
+                    let ilongitude: i32 = (longitude * 5.0).floor() as i32;
+                    let geostr = format!("{}:{}", ilatitude, ilongitude);
+                    if let Some(count) = column_stats.get(&geostr) {
+                        node.column_size = *count;
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+async fn create_nodes(network_summary: &NetworkSummary, geo_cache: &GeoIPCache) -> Vec<Node> {
+    let graph: Graph<usize> = Graph::new();
+    let agraph: &Vec<Vec<usize>> = &network_summary.agraph;
+    let (betweenness, closeness) = graph.compute_betweenness_and_closeness(&agraph);
+    let mut nodes = Vec::with_capacity(agraph.len());
+    for i in 0..agraph.len() {
+        let node: Node = Node {
+            ip: network_summary.node_ips[i].clone(),
+            betweenness: betweenness[i],
+            closeness: closeness[i],
+            column_position: 0,
+            column_size: 0,
+            connections: agraph[i].clone(),
+            geolocation: geo_cache
+                .lookup(
+                    network_summary.node_ips[i]
+                        .parse()
+                        .expect("malformed IP address"),
+                )
+                .await,
+        };
+        nodes.push(node);
+    }
+
+    let mut column_stats = compute_columns(&mut nodes);
+    set_column_positions(&mut nodes, &mut column_stats);
+    nodes
+}
+
+
+
 //TODO(asmie): this NEED to be refactorized as currently it is method-level smell (too long)
 // doing too many things. Especially, when I'd like to add here some other stuff like peer sharing it would
 // be too messy. It should be re-designed and divided into smaller functions with appropriate names and
@@ -79,15 +145,8 @@ pub fn load_state(filepath: &str) -> CrunchyState {
 async fn write_state(config: &CrunchyConfiguration) {
     let mut geo_cache = GeoIPCache::new(&config.geoip_config);
     let response = load_response(config.input_file_path.as_ref().unwrap().to_str().unwrap());
-    let agraph = response.result.agraph;
-    let graph: Graph<usize> = Graph::new();
     let start = Instant::now();
-    let (betweenness, closeness) = graph.compute_betweenness_and_closeness(&agraph);
     let elapsed = start.elapsed();
-    let mut min_betweenness: f64 = 10000.0;
-    let mut max_betweenness: f64 = 0.0;
-    let mut min_closeness: f64 = 10000.0;
-    let mut max_closeness: f64 = 0.0;
 
     let res = geo_cache.load().await;
     if res.is_err() {
@@ -130,48 +189,12 @@ async fn write_state(config: &CrunchyConfiguration) {
         )));
     }
 
-    for between in &betweenness {
-        if *between < min_betweenness {
-            min_betweenness = *between;
-        }
-        if *between > max_betweenness {
-            max_betweenness = *between;
-        }
-    }
-    for close in &closeness {
-        if *close < min_closeness {
-            min_closeness = *close;
-        }
-        if *close > max_closeness {
-            max_closeness = *close;
-        }
-    }
-    let mut nodes = Vec::with_capacity(agraph.len());
-    for i in 0..agraph.len() {
-        let node: Node = Node {
-            ip: response.result.node_ips[i].clone(),
-            betweenness: betweenness[i],
-            closeness: closeness[i],
-            num_connections: agraph[i].len(),
-            geolocation: geo_cache
-                .lookup(
-                    response.result.node_ips[i]
-                        .parse()
-                        .expect("malformed IP address"),
-                )
-                .await,
-        };
-        nodes.push(node);
-    }
+    let nodes = create_nodes(&response.result, &geo_cache).await;
 
     let state = CrunchyState {
-        agraph_length: agraph.len(),
+        agraph_length: response.result.agraph.len(),
         elapsed: elapsed.as_secs_f64(),
-        nodes,
-        min_betweenness,
-        max_betweenness,
-        min_closeness,
-        max_closeness,
+        nodes
     };
 
     // Save all changes done to the cache
@@ -256,13 +279,13 @@ mod tests {
         let size: usize = 2531;
         assert_eq!(state.agraph_length, size);
         assert_eq!(state.nodes.len(), size);
-        assert!((state.min_betweenness - 0.0).abs() < f64::EPSILON);
-        assert!((state.max_betweenness - 0.0006471174062683313).abs() < f64::EPSILON);
-        assert!((state.min_closeness - 1.9965036212494205).abs() < f64::EPSILON);
-        assert!((state.max_closeness - 2.9965618988763065).abs() < f64::EPSILON);
+        // assert!((state.min_betweenness - 0.0).abs() < f64::EPSILON);
+        // assert!((state.max_betweenness - 0.0006471174062683313).abs() < f64::EPSILON);
+        // assert!((state.min_closeness - 1.9965036212494205).abs() < f64::EPSILON);
+        // assert!((state.max_closeness - 2.9965618988763065).abs() < f64::EPSILON);
         let node = state.nodes[5].clone();
         assert_eq!(node.ip, "38.242.199.182");
-        assert_eq!(node.num_connections, 378);
+        // assert_eq!(node.num_onnections, 378);
         assert!((node.betweenness - 0.000244483600836513).abs() < f64::EPSILON);
         assert!((node.closeness - 2.0013493455674).abs() < f64::EPSILON);
     }
