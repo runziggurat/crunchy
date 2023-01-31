@@ -17,6 +17,13 @@ pub struct Node {
     pub geolocation: Option<GeoInfo>,
 }
 
+fn hash_geo_location(latitude: f64, longitude: f64) -> String {
+    // make unique every 0.2, so multiply by 5, convert to integer
+    let ilatitude: i32 = (latitude * 5.0).floor() as i32;
+    let ilongitude: i32 = (longitude * 5.0).floor() as i32;
+    format!("{ilatitude}:{ilongitude}")
+}
+
 // essentially, we sort the nodes into groups at (nearly) same geo-location
 // we use 0.2 degrees for epsilon in both axes.
 // hash gets created from a string created by two numbers
@@ -27,10 +34,7 @@ pub fn set_column_positions(nodes: &mut Vec<Node>) -> HashMap<String, u32> {
         if let Some(geoinfo) = &node.geolocation {
             if let Some(latitude) = geoinfo.latitude {
                 if let Some(longitude) = geoinfo.longitude {
-                    // make unique every 0.2, so multiply by 5, convert to integer
-                    let ilatitude: i32 = (latitude * 5.0).floor() as i32;
-                    let ilongitude: i32 = (longitude * 5.0).floor() as i32;
-                    let geostr = format!("{ilatitude}:{ilongitude}");
+                    let geostr = hash_geo_location(latitude, longitude);
                     column_stats
                         .entry(geostr.clone())
                         .and_modify(|count| *count += 1)
@@ -50,9 +54,7 @@ pub fn set_column_sizes(nodes: &mut Vec<Node>, column_stats: &mut HashMap<String
         if let Some(geoinfo) = &node.geolocation {
             if let Some(latitude) = geoinfo.latitude {
                 if let Some(longitude) = geoinfo.longitude {
-                    let ilatitude: i32 = (latitude * 5.0).floor() as i32;
-                    let ilongitude: i32 = (longitude * 5.0).floor() as i32;
-                    let geostr = format!("{ilatitude}:{ilongitude}");
+                    let geostr = hash_geo_location(latitude, longitude);
                     if let Some(count) = column_stats.get(&geostr) {
                         node.column_size = *count;
                     }
