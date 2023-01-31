@@ -1,14 +1,17 @@
+mod config;
 mod geoip_cache;
+use clap::Parser;
 
 use crate::geoip_cache::GeoIPCache;
 
-use std::path::Path;
 use std::{
     collections::HashMap,
-    env, fs,
+    fs,
+    path::PathBuf,
     time::{Duration, Instant},
 };
 
+use crate::config::CrunchyConfiguration;
 use serde::{Deserialize, Serialize};
 use spectre::{graph::AGraph, graph::Graph};
 use ziggurat_core_geoip::geoip::GeoInfo;
@@ -73,9 +76,9 @@ pub fn load_state(filepath: &str) -> CrunchyState {
 // doing too many things. Especially, when I'd like to add here some other stuff like peer sharing it would
 // be too messy. It should be re-designed and divided into smaller functions with appropriate names and
 // functionalities (like computing graphs, counting factors, geolocalization etc).
-async fn write_state(infile: &str, outfile: &str, cachefile: &str) {
-    let mut geo_cache = GeoIPCache::new(Path::new(cachefile));
-    let response = load_response(infile);
+async fn write_state(config: &CrunchyConfiguration) {
+    let mut geo_cache = GeoIPCache::new(&config.geoip_config);
+    let response = load_response(config.input_file_path.as_ref().unwrap().to_str().unwrap());
     let agraph = response.result.agraph;
     let graph: Graph<usize> = Graph::new();
     let start = Instant::now();
@@ -91,25 +94,41 @@ async fn write_state(infile: &str, outfile: &str, cachefile: &str) {
         println!("No cache file to load! Will be created one.");
     }
 
-    //TODO(asmie): crunchy should be more configurable - currently IT is needed to have IP2LOCATION-LITE-DB11.BIN
-    // in the current directory. As IPS will have many configurable factors it should be possible to
-    // set them easily from configuration file.
-    geo_cache.add_provider(Box::new(Ip2LocationService::new(
-        "IP2LOCATION-LITE-DB11.BIN",
-    )));
+    if config.geoip_config.ip2location_enable {
+        geo_cache.add_provider(Box::new(Ip2LocationService::new(
+            config
+                .geoip_config
+                .ip2location_db_path
+                .as_ref()
+                .unwrap()
+                .to_str()
+                .unwrap(),
+        )));
+    }
 
-    //TODO(asmie): enabling providers below can cause program to wait extremely long time for response
-    // when exceeding free rate limit. Currently use it only when don't have IP2LOCATION-LITE-DB11.BIN.
-    // That's why they are added on the further places. In the future there should be some timeout mechanism
-    // for each IP address to avoid waiting too long time for response.
-    geo_cache.add_provider(Box::new(IpGeolocateService::new(
-        BackendProvider::IpApiCo,
-        "",
-    )));
-    geo_cache.add_provider(Box::new(IpGeolocateService::new(
-        BackendProvider::IpApiCom,
-        "",
-    )));
+    if config.geoip_config.ipapico_enable {
+        geo_cache.add_provider(Box::new(IpGeolocateService::new(
+            BackendProvider::IpApiCo,
+            config
+                .geoip_config
+                .ipapico_api_key
+                .as_ref()
+                .unwrap()
+                .as_str(),
+        )));
+    }
+
+    if config.geoip_config.ipapicom_enable {
+        geo_cache.add_provider(Box::new(IpGeolocateService::new(
+            BackendProvider::IpApiCom,
+            config
+                .geoip_config
+                .ipapicom_api_key
+                .as_ref()
+                .unwrap()
+                .as_str(),
+        )));
+    }
 
     for between in &betweenness {
         if *between < min_betweenness {
@@ -160,24 +179,61 @@ async fn write_state(infile: &str, outfile: &str, cachefile: &str) {
     geo_cache.save().await.expect("could not save geoip cache");
 
     let joutput = serde_json::to_string(&state).unwrap();
-    fs::write(outfile, joutput).unwrap();
+    fs::write(config.state_file_path.as_ref().unwrap(), joutput).unwrap();
 }
 
 #[tokio::main]
 async fn main() {
-    let args: Vec<String> = env::args().collect();
+    let arg_conf = ArgConfiguration::parse();
+    let mut configuration = arg_conf
+        .config_file
+        .map(|path| {
+            CrunchyConfiguration::new(path.to_str().unwrap())
+                .expect("could not load configuration file")
+        })
+        .unwrap_or_default();
 
-    // TODO(asmie): could be refactored to use eg. clap crate.
-    if args.len() != 4 {
-        println!("\n\nUsage is: cargo run <in-sample.json> <out-state.json> <geoip-cache.json> ");
-        println!("E.g.:     \x1b[93mcargo run --release testdata/sample.json testdata/state.json\x1b[0m\n");
+    // Override configuration with command line arguments if provided
+    if let Some(input_file) = arg_conf.input_sample {
+        configuration.input_file_path = Some(input_file);
+    }
+    if let Some(state_file) = arg_conf.out_state {
+        configuration.state_file_path = Some(state_file);
+    }
+    if let Some(geocache_file) = arg_conf.geocache_file {
+        configuration.geoip_config.geocache_file_path = geocache_file;
+    }
+
+    if !configuration.input_file_path.as_ref().unwrap().is_file() {
+        eprintln!(
+            "{}: No such file or directory",
+            configuration
+                .input_file_path
+                .as_ref()
+                .unwrap()
+                .to_str()
+                .unwrap()
+        );
         return;
     }
-    if fs::metadata(&args[1]).is_err() {
-        println!("{}: No such file or directory", &args[1]);
-        return;
-    }
-    write_state(&args[1], &args[2], &args[3]).await;
+    write_state(&configuration).await;
+}
+
+#[derive(Parser, Debug)]
+#[clap(author = "Ziggurat Team", version, about, long_about = None)]
+pub struct ArgConfiguration {
+    /// Input file with sample data to process (overrides input from config file)
+    #[clap(short, long, value_parser)]
+    pub input_sample: Option<PathBuf>,
+    /// Output file with state of the graph (overrides output from config file)
+    #[clap(short, long, value_parser)]
+    pub out_state: Option<PathBuf>,
+    /// Output file with geolocation cache (overrides cache from config file)
+    #[clap(short, long, value_parser)]
+    pub geocache_file: Option<PathBuf>,
+    /// Configuration file path (if none defaults will be assumed)
+    #[clap(short, long, value_parser)]
+    pub config_file: Option<PathBuf>,
 }
 
 #[cfg(test)]
@@ -186,12 +242,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_state_output() {
-        let infile = "testdata/sample.json";
-        let outfile = "testdata/state.json";
-        let cachefile = "testdata/geoip-cache.json";
-        let _ = fs::remove_file(outfile);
-        write_state(infile, outfile, cachefile).await;
-        let state = load_state(outfile);
+        let configuration = CrunchyConfiguration::default();
+        let _ = fs::remove_file(configuration.state_file_path.as_ref().unwrap());
+        write_state(&configuration).await;
+        let state = load_state(
+            configuration
+                .state_file_path
+                .as_ref()
+                .unwrap()
+                .to_str()
+                .unwrap(),
+        );
         let size: usize = 2531;
         assert_eq!(state.agraph_length, size);
         assert_eq!(state.nodes.len(), size);
