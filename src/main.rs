@@ -1,9 +1,12 @@
 mod config;
 mod geoip_cache;
+mod ips;
 mod nodes;
+
 use clap::Parser;
 
 use crate::geoip_cache::GeoIPCache;
+use crate::ips::Ips;
 
 use std::{
     collections::HashMap,
@@ -126,6 +129,12 @@ async fn write_state(config: &CrunchyConfiguration) {
     // TODO(asmie): better error handling - after refactorization of this function
     geo_cache.save().await.expect("could not save geoip cache");
 
+    let mut ips = Ips::new(config.ips_config.clone());
+    let ips_peers = ips.generate(&state, &agraph).await;
+
+    let peerlist = serde_json::to_string(&ips_peers).unwrap();
+    fs::write(config.ips_config.peer_file_path.as_ref().unwrap(), peerlist).unwrap();
+
     let joutput = serde_json::to_string(&state).unwrap();
     fs::write(config.state_file_path.as_ref().unwrap(), joutput).unwrap();
 }
@@ -150,6 +159,9 @@ async fn main() {
     }
     if let Some(geocache_file) = arg_conf.geocache_file {
         configuration.geoip_config.geocache_file_path = geocache_file;
+    }
+    if arg_conf.ips_file.is_some() {
+        configuration.ips_config.peer_file_path = arg_conf.ips_file;
     }
 
     if !configuration.input_file_path.as_ref().unwrap().is_file() {
@@ -182,6 +194,9 @@ pub struct ArgConfiguration {
     /// Configuration file path (if none defaults will be assumed)
     #[clap(short, long, value_parser)]
     pub config_file: Option<PathBuf>,
+    /// Intelligent Peer Sharing output file path (overrides output from config file)
+    #[clap(short = 'p', long, value_parser)]
+    pub ips_file: Option<PathBuf>,
 }
 
 #[cfg(test)]

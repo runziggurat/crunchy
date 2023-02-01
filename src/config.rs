@@ -41,8 +41,33 @@ pub struct GeoIPConfiguration {
 }
 
 /// Configuration for Intelligent Peer Sharing module
-#[derive(Default, Debug, Clone, Deserialize)]
-pub struct IPSConfiguration {} //TODO(asmie): implement with IPS
+#[derive(Debug, Clone, Deserialize)]
+pub struct IPSConfiguration {
+    /// Path where peer list file will be written
+    pub peer_file_path: Option<PathBuf>,
+    /// Indicates if configuration should be taken into account
+    pub pref_location: bool,
+    /// True means we should prefer closer peers, false means we should prefer farther peers
+    pub pref_location_closer: bool,
+    /// If pref_location_closer is true, this is the maximum distance in kilometers we should prefer
+    /// closer peers. If pref_location_closer is false, this is the minimum distance in kilometers we
+    /// should prefer farther peers.
+    pub pref_location_distance: u32,
+    /// Indicates how many peers must be changed for each node
+    pub change_at_least: u32,
+    /// Indicates maximum peers should be changed for each node
+    pub change_no_more: u32,
+    /// Weight (importance) of the location factor (used in multi-criteria analysis)
+    pub location_weight: f64,
+    /// Weight (importance) of the degree factor (used in multi-criteria analysis)
+    pub degree_weight: f64,
+    /// Weight (importance) of the eigenvector factor (used in multi-criteria analysis)
+    pub eigenvector_weight: f64,
+    /// Weight (importance) of the betweenness factor (used in multi-criteria analysis)
+    pub betweenness_weight: f64,
+    /// Weight (importance) of the closeness factor (used in multi-criteria analysis)
+    pub closeness_weight: f64,
+}
 
 impl CrunchyConfiguration {
     pub fn new(conf_path: &str) -> Result<CrunchyConfiguration> {
@@ -74,6 +99,24 @@ impl Default for GeoIPConfiguration {
             ipapico_api_key: Some(String::from("")),
             ipapicom_enable: true,
             ipapicom_api_key: Some(String::from("")),
+        }
+    }
+}
+
+impl Default for IPSConfiguration {
+    fn default() -> IPSConfiguration {
+        IPSConfiguration {
+            peer_file_path: Some(PathBuf::from("testdata/peers.json")),
+            pref_location: true,
+            pref_location_closer: true,
+            pref_location_distance: 1000,
+            change_at_least: 1,
+            change_no_more: 2,
+            location_weight: 0.1,
+            degree_weight: 0.25,
+            eigenvector_weight: 0.25,
+            betweenness_weight: 0.25,
+            closeness_weight: 0.15,
         }
     }
 }

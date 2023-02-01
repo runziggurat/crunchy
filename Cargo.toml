@@ -10,6 +10,7 @@ readme = "Readme.md"
 [dependencies]
 anyhow = "1.0"
 clap = { version = "4.0.29", features = ["derive"] }
+geoutils = "0.5.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 spectre = "0.5.2"
