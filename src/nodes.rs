@@ -4,7 +4,7 @@ use ziggurat_core_geoip::geoip::GeoInfo;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use spectre::graph::Graph;
+use spectre::graph::{Graph, AGraph};
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct Node {
@@ -19,8 +19,8 @@ pub struct Node {
 
 fn hash_geo_location(latitude: f64, longitude: f64) -> String {
     // make unique every 0.2, so multiply by 5, convert to integer
-    let ilatitude: i32 = (latitude * 5.0).floor() as i32;
-    let ilongitude: i32 = (longitude * 5.0).floor() as i32;
+    let ilatitude = (latitude * 5.0).floor() as i32;
+    let ilongitude = (longitude * 5.0).floor() as i32;
     format!("{ilatitude}:{ilongitude}")
 }
 
@@ -29,7 +29,7 @@ fn hash_geo_location(latitude: f64, longitude: f64) -> String {
 // hash gets created from a string created by two numbers
 // increment each time the same location is found
 pub fn set_column_positions(nodes: &mut Vec<Node>) -> HashMap<String, u32> {
-    let mut column_stats: HashMap<String, u32> = HashMap::new();
+    let mut column_stats = HashMap::new();
     for node in nodes {
         if let Some(geoinfo) = &node.geolocation {
             if let Some(latitude) = geoinfo.latitude {
@@ -65,7 +65,7 @@ pub fn set_column_sizes(nodes: &mut Vec<Node>, column_stats: &mut HashMap<String
 }
 
 pub async fn create_nodes(
-    agraph: &Vec<Vec<usize>>,
+    agraph: &AGraph,
     node_ips: &[String],
     geo_cache: &GeoIPCache,
 ) -> Vec<Node> {
