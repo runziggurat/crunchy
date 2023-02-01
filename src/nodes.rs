@@ -4,7 +4,7 @@ use ziggurat_core_geoip::geoip::GeoInfo;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use spectre::graph::{Graph, AGraph};
+use spectre::graph::{AGraph, Graph};
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct Node {
