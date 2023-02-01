@@ -39,17 +39,23 @@ The generated output contains processed data that our renderer can directly use.
         ip: String,
         betweenness: f64,
         closeness: f64,
-        num_connections: usize,
+        cell_position: u32,
+        cell_height: u32,
+        connections: Vec<usize>,
         geolocation: GeoInfo
-    ],
-    betweenness: Vec<f64>,
-    closeness: Vec<f64>,
-    min_betweenness: f64,
-    max_betweenness: f64,
-    min_closeness: f64,
-    max_closeness: f64
+    ]
 }
 ```
+Explaination of the node fields:
+
+- `ip`: the address as dotted quad, without port number
+- `betweenness`: the computed betweenness
+- `closeness`: the computed closeness
+- `cell_position`: corresponds to the z-coordinate positioning of a given node.
+- `cell_height`: indicated the total number of nodes in a given cell (like a vertical column).
+- `connections`: an array of indices corresponding to the connected nodes.
+- `geolocation`: used for latitude, longitude, city, country
+
 
 ### Command Line
 
