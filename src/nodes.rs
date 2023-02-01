@@ -8,19 +8,19 @@ use spectre::graph::{AGraph, Graph};
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct Node {
-    // the ip address, dotted quad, without port number
+    /// the ip address, dotted quad, without port number
     pub ip: String,
-    // the computed betweenness
+    /// the computed betweenness
     pub betweenness: f64,
-    // the computed closeness
+    /// the computed closeness
     pub closeness: f64,
-    // this corresponds to the z-coordinate in the visualizer
+    /// this corresponds to the z-coordinate in the visualizer
     pub cell_position: u32,
-    // the height of the cell (think, a column)
+    /// the height of the cell (think, a column)
     pub cell_height: u32,
-    // indices of all connected nodes
+    /// indices of all connected nodes
     pub connections: Vec<usize>,
-    // used for latitude, longitude, city, country
+    /// used for latitude, longitude, city, country
     pub geolocation: Option<GeoInfo>,
 }
 
@@ -36,15 +36,15 @@ fn hash_geo_location(latitude: f64, longitude: f64) -> String {
 // this field is the same for all nodes in a given cell
 pub fn set_cell_heights(nodes: &mut Vec<Node>, cell_stats: &mut HashMap<String, u32>) {
     for node in nodes {
-        if let Some(geoinfo) = &node.geolocation {
-            if let Some(latitude) = geoinfo.latitude {
-                let longitude = geoinfo
-                    .longitude
-                    .expect("a longitude must be set if a latitude is set");
-                let geostr = hash_geo_location(latitude, longitude);
-                if let Some(count) = cell_stats.get(&geostr) {
-                    node.cell_height = *count;
-                }
+        if let Some(GeoInfo {
+            latitude: Some(latitude),
+            longitude: Some(longitude),
+            ..
+        }) = &node.geolocation
+        {
+            let geostr = hash_geo_location(*latitude, *longitude);
+            if let Some(count) = cell_stats.get(&geostr) {
+                node.cell_height = *count;
             }
         }
     }
@@ -58,17 +58,18 @@ pub fn get_cell_position(
     cell_stats: &mut HashMap<String, u32>,
     geolocation: &Option<GeoInfo>,
 ) -> u32 {
-    if let Some(geoinfo) = geolocation {
-        if let Some(latitude) = geoinfo.latitude {
-            let longitude = geoinfo
-                .longitude
-                .expect("a longitude must be set if a latitude is set");
-            let geostr = hash_geo_location(latitude, longitude);
-            return *cell_stats
-                .entry(geostr)
-                .and_modify(|count| *count += 1)
-                .or_insert(1);
-        }
+    if let Some(GeoInfo {
+        latitude: Some(latitude),
+        longitude: Some(longitude),
+        ..
+    }) = geolocation
+    {
+        let geostr = hash_geo_location(*latitude, *longitude);
+
+        return *cell_stats
+            .entry(geostr)
+            .and_modify(|count| *count += 1)
+            .or_insert(1);
     }
     0
 }
@@ -84,11 +85,13 @@ pub async fn create_nodes(
     let (betweenness, closeness) = graph.compute_betweenness_and_closeness(agraph);
     let mut nodes = Vec::with_capacity(agraph.len());
     let mut cell_stats: HashMap<String, u32> = HashMap::new();
+
     for i in 0..agraph.len() {
         let geolocation = geo_cache
             .lookup(node_ips[i].parse().expect("malformed IP address"))
             .await;
         let cell_position = get_cell_position(&mut cell_stats, &geolocation);
+
         let node: Node = Node {
             ip: node_ips[i].clone(),
             betweenness: betweenness[i],
@@ -100,6 +103,7 @@ pub async fn create_nodes(
         };
         nodes.push(node);
     }
+
     // this second pass is necessary, but quite fast
     set_cell_heights(&mut nodes, &mut cell_stats);
     nodes
