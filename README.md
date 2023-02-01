@@ -56,6 +56,8 @@ Explaination of the node fields:
 - `connections`: an array of indices corresponding to the connected nodes.
 - `geolocation`: used for latitude, longitude, city, country
 
+### More about `cell`:
+Nodes at the same (or nearly the same) geolocation get grouped into a cell. This results in rendering a column of nodes, where each node gets its own position coordinate assigned. We use 0.2 degree granularity in both axes to determine cell membership.
 
 ### Command Line
 
