@@ -130,7 +130,7 @@ async fn write_state(config: &CrunchyConfiguration) {
     geo_cache.save().await.expect("could not save geoip cache");
 
     let mut ips = Ips::new(config.ips_config.clone());
-    let ips_peers = ips.generate(&state, &agraph).await;
+    let ips_peers = ips.generate(&state, &response.result.agraph).await;
 
     let peerlist = serde_json::to_string(&ips_peers).unwrap();
     fs::write(config.ips_config.peer_file_path.as_ref().unwrap(), peerlist).unwrap();
