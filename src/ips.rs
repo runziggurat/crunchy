@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use spectre::edge::Edge;
 use spectre::graph::{AGraph, Graph};
 use std::collections::HashMap;
+use std::collections::{HashSet, VecDeque};
 use std::net::IpAddr;
 use std::str::FromStr;
 
@@ -72,7 +73,8 @@ impl Ips {
         // 0 - Detect islands
         // To reconsider if islands should be merged prior to any other computations or not.
         // IMHO, if there are islands they can influence on the results of the computations.
-        // TODO(asmie): TBD
+        // TODO(asmie): Merging islands is not implemented yet.
+        let _islands = self.detect_islands(&state.nodes, agraph);
 
         // Now take the current params
         let degrees = graph.degree_centrality();
@@ -403,5 +405,41 @@ impl Ips {
             * self.config.eigenvector_weight;
 
         rating
+    }
+
+    // Very simple algorithm to detect islands.
+    // Take first vertex and do BFS to find all connected vertices. If there are any unvisited vertices
+    // create new island and do BFS one more time. Repeat until all vertices are visited.
+    fn detect_islands(&self, nodes: &[Node], agraph: &AGraph) -> Vec<HashSet<usize>> {
+        let mut islands = Vec::new();
+        let mut visited = vec![false; nodes.len()];
+
+        for i in 0..agraph.len() {
+            if visited[i] {
+                continue;
+            }
+
+            let mut island = HashSet::new();
+            let mut queue = VecDeque::new();
+            queue.push_back(i);
+
+            while let Some(node_idx) = queue.pop_front() {
+                if visited[node_idx] {
+                    continue;
+                }
+
+                island.insert(node_idx);
+
+                visited[node_idx] = true;
+
+                for j in 0..agraph[node_idx].len() {
+                    if !visited[agraph[node_idx][j]] {
+                        queue.push_back(agraph[node_idx][j]);
+                    }
+                }
+            }
+            islands.push(island);
+        }
+        islands
     }
 }
