@@ -46,13 +46,13 @@ pub struct IPSConfiguration {
     /// Path where peer list file will be written
     pub peer_file_path: Option<PathBuf>,
     /// Indicates if configuration should be taken into account
-    pub pref_location: bool,
+    pub use_geolocation: bool,
     /// True means we should prefer closer peers, false means we should prefer farther peers
-    pub pref_location_closer: bool,
+    pub use_closer_geolocation: bool,
     /// If pref_location_closer is true, this is the maximum distance in kilometers we should prefer
     /// closer peers. If pref_location_closer is false, this is the minimum distance in kilometers we
     /// should prefer farther peers.
-    pub pref_location_distance: u32,
+    pub geolocation_minmax_distance_km: u32,
     /// Indicates how many peers must be changed for each node
     pub change_at_least: u32,
     /// Indicates maximum peers should be changed for each node
@@ -107,9 +107,9 @@ impl Default for IPSConfiguration {
     fn default() -> IPSConfiguration {
         IPSConfiguration {
             peer_file_path: Some(PathBuf::from("testdata/peers.json")),
-            pref_location: true,
-            pref_location_closer: true,
-            pref_location_distance: 1000,
+            use_geolocation: true,
+            use_closer_geolocation: true,
+            geolocation_minmax_distance_km: 1000,
             change_at_least: 1,
             change_no_more: 2,
             location_weight: 0.1,

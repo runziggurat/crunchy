@@ -123,7 +123,7 @@ impl Ips {
             // 1 - update ranks by location for specified node
             // This need to be done every time as location ranking will change for differently
             // located nodes.
-            if self.config.pref_location {
+            if self.config.use_geolocation {
                 self.update_rating_by_location(node, &state.nodes, &mut peer_ratings);
             }
 
@@ -261,11 +261,11 @@ impl Ips {
                     geo_info.longitude.unwrap_or_default(),
                 );
                 let distance = selected_location.distance_to(&location).unwrap().meters();
-                let pref_distance = self.config.pref_location_distance as f64 * 1000.0;
+                let pref_distance = self.config.geolocation_minmax_distance_km as f64 * 1000.0;
 
                 // Map distance to some levels of rating - now they are taken arbitrarily but
                 // they should be somehow related to the distance.
-                if self.config.pref_location_closer {
+                if self.config.use_closer_geolocation {
                     match distance {
                         _ if distance < pref_distance => rating = NORMALIZE_TO_VALUE,
                         _ if distance < 2.0 * pref_distance => {
