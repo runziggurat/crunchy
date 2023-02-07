@@ -332,10 +332,7 @@ impl Ips {
             .map(|m| m.1)
             .unwrap();
 
-        self.eigenvector_factors = NormalizationFactors {
-            min,
-            max,
-        };
+        self.eigenvector_factors = NormalizationFactors { min, max };
     }
 
     fn determine_betweenness_factors(&mut self, nodes: &[Node]) {
@@ -350,10 +347,7 @@ impl Ips {
             .map(|m| m.betweenness)
             .unwrap();
 
-        self.betweenness_factors = NormalizationFactors {
-            min,
-            max,
-        };
+        self.betweenness_factors = NormalizationFactors { min, max };
     }
 
     fn determine_closeness_factors(&mut self, nodes: &[Node]) {
@@ -368,10 +362,7 @@ impl Ips {
             .map(|m| m.closeness)
             .unwrap();
 
-        self.closeness_factors = NormalizationFactors {
-            min,
-            max,
-        };
+        self.closeness_factors = NormalizationFactors { min, max };
     }
 
     fn rate_node(&self, node: &Node, degree: u32, eigenvalue: f64) -> f64 {
