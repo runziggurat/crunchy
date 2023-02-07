@@ -45,7 +45,6 @@ const NORMALIZE_TO_VALUE: f64 = 100.0;
 struct NormalizationFactors {
     min: f64,
     max: f64,
-    value: f64,
 }
 
 impl Ips {
@@ -308,17 +307,16 @@ impl Ips {
             .iter()
             .min_by(|a, b| a.1.cmp(b.1))
             .map(|m| m.1)
-            .unwrap_or(&0);
+            .unwrap();
         let max = *degrees
             .iter()
             .max_by(|a, b| a.1.cmp(b.1))
             .map(|m| m.1)
-            .unwrap_or(&(NORMALIZE_TO_VALUE as u32));
+            .unwrap();
 
         self.degree_factors = NormalizationFactors {
             min: min as f64,
             max: max as f64,
-            value: NORMALIZE_TO_VALUE,
         };
     }
 
@@ -327,17 +325,16 @@ impl Ips {
             .iter()
             .min_by(|a, b| a.1.partial_cmp(b.1).unwrap())
             .map(|m| m.1)
-            .unwrap_or(&0.0);
+            .unwrap();
         let max = *eigenvalues
             .iter()
             .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
             .map(|m| m.1)
-            .unwrap_or(&NORMALIZE_TO_VALUE);
+            .unwrap();
 
         self.eigenvector_factors = NormalizationFactors {
             min,
             max,
-            value: NORMALIZE_TO_VALUE,
         };
     }
 
@@ -346,17 +343,16 @@ impl Ips {
             .iter()
             .min_by(|a, b| a.betweenness.partial_cmp(&b.betweenness).unwrap())
             .map(|m| m.betweenness)
-            .unwrap_or(0.0);
+            .unwrap();
         let max = nodes
             .iter()
             .max_by(|a, b| a.betweenness.partial_cmp(&b.betweenness).unwrap())
             .map(|m| m.betweenness)
-            .unwrap_or(NORMALIZE_TO_VALUE);
+            .unwrap();
 
         self.betweenness_factors = NormalizationFactors {
             min,
             max,
-            value: NORMALIZE_TO_VALUE,
         };
     }
 
@@ -365,17 +361,16 @@ impl Ips {
             .iter()
             .min_by(|a, b| a.closeness.partial_cmp(&b.closeness).unwrap())
             .map(|m| m.closeness)
-            .unwrap_or(0.0);
+            .unwrap();
         let max = nodes
             .iter()
             .max_by(|a, b| a.closeness.partial_cmp(&b.closeness).unwrap())
             .map(|m| m.closeness)
-            .unwrap_or(NORMALIZE_TO_VALUE);
+            .unwrap();
 
         self.closeness_factors = NormalizationFactors {
             min,
             max,
-            value: NORMALIZE_TO_VALUE,
         };
     }
 
@@ -386,22 +381,22 @@ impl Ips {
         // 1. Degree
         let mut rating = ((degree as f64 - self.degree_factors.min)
             / (self.degree_factors.max - self.degree_factors.min)
-            * self.degree_factors.value)
+            * NORMALIZE_TO_VALUE)
             * self.config.degree_weight;
         // 2. Betweenness
         rating += ((node.betweenness - self.betweenness_factors.min)
             / (self.betweenness_factors.max - self.betweenness_factors.min)
-            * self.betweenness_factors.value)
+            * NORMALIZE_TO_VALUE)
             * self.config.betweenness_weight;
         // 3. Closeness
         rating += ((node.closeness - self.closeness_factors.min)
             / (self.closeness_factors.max - self.closeness_factors.min)
-            * self.closeness_factors.value)
+            * NORMALIZE_TO_VALUE)
             * self.config.closeness_weight;
         // 4. Eigenvector
         rating += ((eigenvalue - self.eigenvector_factors.min)
             / (self.eigenvector_factors.max - self.eigenvector_factors.min)
-            * self.eigenvector_factors.value)
+            * NORMALIZE_TO_VALUE)
             * self.config.eigenvector_weight;
 
         rating
