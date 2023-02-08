@@ -429,3 +429,87 @@ impl Ips {
         islands
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use spectre::edge::Edge;
+
+    #[tokio::test]
+    async fn detect_islands_test_no_islands() {
+        let mut graph = Graph::new();
+        let mut nodes = Vec::new();
+        let mut ipaddrs = Vec::new();
+        let ips_config = IPSConfiguration::default();
+        let ips = Ips::new(ips_config);
+
+        for i in 0..10 {
+            let ip = format!("192.168.0.{i}");
+
+            ipaddrs.push(IpAddr::from_str(ip.as_str()).unwrap());
+
+            let node = Node {
+                ip: ip.clone(),
+                ..Default::default()
+            };
+            nodes.push(node);
+        }
+
+        // Case where each node is connected to all other nodes
+        for i in 0..10 {
+            for j in 0..10 {
+                if i == j {
+                    continue;
+                }
+                graph.insert(Edge::new(
+                    IpAddr::from_str(nodes[i].ip.as_str()).unwrap(),
+                    IpAddr::from_str(nodes[j].ip.as_str()).unwrap(),
+                ));
+            }
+        }
+
+        let agraph = graph.create_agraph(&ipaddrs);
+        let islands = ips.detect_islands(&nodes, &agraph);
+
+        assert_eq!(islands.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn detect_islands_test() {
+        let mut graph = Graph::new();
+        let mut nodes = Vec::new();
+        let mut ipaddrs = Vec::new();
+        let ips_config = IPSConfiguration::default();
+        let ips = Ips::new(ips_config);
+
+        for i in 0..10 {
+            let ip = format!("192.169.0.{i}");
+
+            ipaddrs.push(IpAddr::from_str(ip.as_str()).unwrap());
+
+            let node = Node {
+                ip: ip.clone(),
+                ..Default::default()
+            };
+            nodes.push(node);
+        }
+
+        // Each node is connected only to itself - each node is an island
+        for i in 0..10 {
+            for j in 0..10 {
+                if i != j {
+                    continue;
+                }
+                graph.insert(Edge::new(
+                    IpAddr::from_str(nodes[i].ip.as_str()).unwrap(),
+                    IpAddr::from_str(nodes[j].ip.as_str()).unwrap(),
+                ));
+            }
+        }
+
+        let agraph = graph.create_agraph(&ipaddrs);
+        let islands = ips.detect_islands(&nodes, &agraph);
+
+        assert_eq!(islands.len(), nodes.len());
+    }
+}
