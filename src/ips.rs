@@ -73,7 +73,7 @@ impl Ips {
         // To reconsider if islands should be merged prior to any other computations or not.
         // IMHO, if there are islands they can influence on the results of the computations.
         // TODO(asmie): Merging islands is not implemented yet.
-        let _islands = self.detect_islands(&state.nodes, agraph);
+        let _islands = self.detect_islands(agraph);
 
         // Now take the current params
         let degrees = graph.degree_centrality();
@@ -396,9 +396,9 @@ impl Ips {
     // Very simple algorithm to detect islands.
     // Take first vertex and do BFS to find all connected vertices. If there are any unvisited vertices
     // create new island and do BFS one more time. Repeat until all vertices are visited.
-    fn detect_islands(&self, nodes: &[Node], agraph: &AGraph) -> Vec<HashSet<usize>> {
+    fn detect_islands(&self, agraph: &AGraph) -> Vec<HashSet<usize>> {
         let mut islands = Vec::new();
-        let mut visited = vec![false; nodes.len()];
+        let mut visited = vec![false; agraph.len()];
 
         for i in 0..agraph.len() {
             if visited[i] {
@@ -469,7 +469,7 @@ mod tests {
         }
 
         let agraph = graph.create_agraph(&ipaddrs);
-        let islands = ips.detect_islands(&nodes, &agraph);
+        let islands = ips.detect_islands(&agraph);
 
         assert_eq!(islands.len(), 1);
     }
@@ -508,7 +508,7 @@ mod tests {
         }
 
         let agraph = graph.create_agraph(&ipaddrs);
-        let islands = ips.detect_islands(&nodes, &agraph);
+        let islands = ips.detect_islands(&agraph);
 
         assert_eq!(islands.len(), nodes.len());
     }
