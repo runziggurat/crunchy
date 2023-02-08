@@ -33,11 +33,11 @@ pub struct Ips {
 
 /// Peer list structure containing peer list for each node
 #[derive(Clone, Serialize, Deserialize)]
-pub struct PeerList {
+pub struct Peer {
     /// IP address of the node
-    pub peer: IpAddr,
+    pub ip: IpAddr,
     /// List of peers for the node
-    pub peer_list: Vec<IpAddr>,
+    pub list: Vec<IpAddr>,
 }
 
 const NORMALIZE_TO_VALUE: f64 = 100.0;
@@ -59,7 +59,7 @@ impl Ips {
     /// It needs state and agraph to be passed as parameters which need to be correlated with
     /// the crawler's state and agraph (and with each other), so the indexes saved in the
     /// agraph are the same as the positions of the nodes in the state.nodes.
-    pub async fn generate(&mut self, state: &CrunchyState, agraph: &AGraph) -> Vec<PeerList> {
+    pub async fn generate(&mut self, state: &CrunchyState, agraph: &AGraph) -> Vec<Peer> {
         let mut peer_list = Vec::new();
 
         // Reconstruct graph from the agraph - we need to do this because we need all the
@@ -114,9 +114,9 @@ impl Ips {
             let mut peer_ratings = const_factors.clone();
             let mut curr_peer_ratings: Vec<(IpAddr, usize, f64)> = Vec::new();
 
-            let mut peer_list_entry = PeerList {
-                peer: node_ip,
-                peer_list: Vec::new(),
+            let mut peer_list_entry = Peer {
+                ip: node_ip,
+                list: Vec::new(),
             };
 
             // 1 - update ranks by location for specified node
@@ -130,7 +130,7 @@ impl Ips {
             for (peer_idx, rating) in peer_ratings.iter().enumerate().take(agraph[node_idx].len()) {
                 let peer = agraph[node_idx][peer_idx];
                 peer_list_entry
-                    .peer_list
+                    .list
                     .push(IpAddr::from_str(state.nodes[peer].ip.as_str()).unwrap());
 
                 // Remeber current peer ratings
@@ -176,7 +176,7 @@ impl Ips {
                 for _ in 0..peers_to_delete_count {
                     let peer_to_delete = curr_peer_ratings.pop();
                     if let Some(peer_to_delete) = peer_to_delete {
-                        peer_list_entry.peer_list.retain(|x| x != &peer_to_delete.0);
+                        peer_list_entry.list.retain(|x| x != &peer_to_delete.0);
                     }
                 }
             }
@@ -196,7 +196,7 @@ impl Ips {
                 // Add peers with highest rating as candidates
                 for peer in peer_ratings.iter() {
                     // Check if peer is already in peerlist - if so go to next one
-                    if peer_list_entry.peer_list.contains(&peer.0) {
+                    if peer_list_entry.list.contains(&peer.0) {
                         continue;
                     }
 
@@ -219,7 +219,7 @@ impl Ips {
                 });
 
                 for peer in candidates.iter().take(peers_to_add_count as usize) {
-                    peer_list_entry.peer_list.push(peer.0);
+                    peer_list_entry.list.push(peer.0);
                 }
             }
 
