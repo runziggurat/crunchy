@@ -11,9 +11,9 @@ ipapicom_enable = false
 
 [ips_config]
 peer_file_path = "testdata/peers.json"
-pref_location = true
-pref_location_closer = true
-pref_location_distance = 1000
+use_geolocation = true
+use_closer_geolocation = true
+geolocation_minmax_distance_km = 1000
 change_at_least = 1
 change_no_more = 2
 location_weight = 0.10
