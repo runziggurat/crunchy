@@ -5,17 +5,12 @@ use clap::Parser;
 
 use crate::geoip_cache::GeoIPCache;
 
-use std::{
-    collections::HashMap,
-    fs,
-    path::PathBuf,
-    time::{Duration, Instant},
-};
+use std::{fs, path::PathBuf, time::Instant};
 
 use crate::config::CrunchyConfiguration;
 use crate::nodes::{create_nodes, Node};
 use serde::{Deserialize, Serialize};
-use spectre::graph::AGraph;
+use ziggurat_core_crawler::summary::NetworkSummary;
 use ziggurat_core_geoip::providers::ip2loc::Ip2LocationService;
 use ziggurat_core_geoip::providers::ipgeoloc::{BackendProvider, IpGeolocateService};
 
@@ -24,20 +19,6 @@ pub struct CrunchyState {
     agraph_length: usize,
     elapsed: f64,
     nodes: Vec<Node>,
-}
-
-#[allow(dead_code)]
-#[derive(Default, Deserialize)]
-pub struct NetworkSummary {
-    num_known_nodes: usize,
-    num_good_nodes: usize,
-    num_known_connections: usize,
-    num_versions: usize,
-    protocol_versions: HashMap<u32, usize>,
-    user_agents: HashMap<String, usize>,
-    crawler_runtime: Duration,
-    node_ips: Vec<String>,
-    agraph: AGraph,
 }
 
 #[allow(dead_code)]
