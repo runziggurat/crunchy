@@ -77,7 +77,7 @@ impl Ips {
 
         // Now take the current params
         let degrees = graph.degree_centrality();
-        let degree_delta = graph.degree_centrality_delta();
+        let degree_avg = self.degree_centrality_avg(&degrees);
         let eigenvalues = graph.eigenvalue_centrality();
 
         // Determine factors used for normalization.
@@ -142,7 +142,7 @@ impl Ips {
             // nodes should pursue to degree_delta level. That could be bad if graph's vertexes
             // have very high (or low) degrees and therefore, delta is very high (or low) too. But until
             // we have some better idea this one is the best we can do to keep up with the graph.
-            let desired_degree = (degree_delta as u32 + degrees.get(&node_ip).unwrap()) / 2;
+            let desired_degree = (degree_avg as u32 + degrees.get(&node_ip).unwrap()) / 2;
 
             // 3 - Calculate how many peers to add or delete from peerlist
             let peers_to_delete_count = if desired_degree < *degrees.get(&node_ip).unwrap() {
@@ -300,6 +300,14 @@ impl Ips {
             }
         }
         graph
+    }
+
+    fn degree_centrality_avg(&self, degrees: &HashMap<IpAddr, u32>) -> f64 {
+        let mut sum = 0.0;
+        for degree in degrees.values() {
+            sum += *degree as f64;
+        }
+        sum / degrees.len() as f64
     }
 
     fn determine_degrees_factors(&mut self, degrees: &HashMap<IpAddr, u32>) {
