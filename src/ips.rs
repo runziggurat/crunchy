@@ -83,9 +83,15 @@ impl Ips {
         // Determine factors used for normalization.
         // Normalization step is needed to make sure that all the factors are in the same range and
         // weights can be applied to them.
-        self.degree_factors = NormalizationFactors::determine(&degrees.values().cloned().collect());
+        self.degree_factors = NormalizationFactors::determine(
+            &degrees
+                .values()
+                .cloned()
+                .map(|d| d as f64)
+                .collect::<Vec<f64>>(),
+        );
         self.eigenvector_factors =
-            NormalizationFactors::determine(&eigenvalues.values().cloned().collect());
+            NormalizationFactors::determine(&eigenvalues.values().cloned().collect::<Vec<f64>>());
 
         let betweenness = &state
             .nodes
@@ -394,7 +400,7 @@ impl Ips {
 }
 
 impl NormalizationFactors {
-    fn determine<T>(list: &Vec<T>) -> NormalizationFactors
+    fn determine<T>(list: &[T]) -> NormalizationFactors
     where
         T: PartialOrd + Into<f64> + Copy,
     {
