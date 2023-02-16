@@ -323,34 +323,40 @@ impl Ips {
 
     fn rate_node(&self, node: &Node, degree: u32, eigenvalue: f64) -> f64 {
         // Calculate rating for node
-
-        // First, check if the factors are not equal, otherwise we will get a division by zero
-        assert_ne!(self.degree_factors.max, self.degree_factors.min);
-        assert_ne!(self.eigenvector_factors.max, self.eigenvector_factors.min);
-        assert_ne!(self.betweenness_factors.max, self.betweenness_factors.min);
-        assert_ne!(self.closeness_factors.max, self.closeness_factors.min);
-
         // Rating is a combination of the following factors:
+        let mut rating = 0.0;
+
         // 1. Degree
-        let mut rating = ((degree as f64 - self.degree_factors.min)
-            / (self.degree_factors.max - self.degree_factors.min)
-            * NORMALIZE_TO_VALUE)
-            * self.config.mcda_weights.degree;
+        if self.degree_factors.max != self.degree_factors.min {
+            rating += ((degree as f64 - self.degree_factors.min)
+                / (self.degree_factors.max - self.degree_factors.min)
+                * NORMALIZE_TO_VALUE)
+                * self.config.mcda_weights.degree;
+        }
+
         // 2. Betweenness
-        rating += ((node.betweenness - self.betweenness_factors.min)
-            / (self.betweenness_factors.max - self.betweenness_factors.min)
-            * NORMALIZE_TO_VALUE)
-            * self.config.mcda_weights.betweenness;
+        if self.betweenness_factors.max != self.betweenness_factors.min {
+            rating += ((node.betweenness - self.betweenness_factors.min)
+                / (self.betweenness_factors.max - self.betweenness_factors.min)
+                * NORMALIZE_TO_VALUE)
+                * self.config.mcda_weights.betweenness;
+        }
+
         // 3. Closeness
-        rating += ((node.closeness - self.closeness_factors.min)
-            / (self.closeness_factors.max - self.closeness_factors.min)
-            * NORMALIZE_TO_VALUE)
-            * self.config.mcda_weights.closeness;
+        if self.closeness_factors.max != self.closeness_factors.min {
+            rating += ((node.closeness - self.closeness_factors.min)
+                / (self.closeness_factors.max - self.closeness_factors.min)
+                * NORMALIZE_TO_VALUE)
+                * self.config.mcda_weights.closeness;
+        }
+
         // 4. Eigenvector
-        rating += ((eigenvalue - self.eigenvector_factors.min)
-            / (self.eigenvector_factors.max - self.eigenvector_factors.min)
-            * NORMALIZE_TO_VALUE)
-            * self.config.mcda_weights.eigenvector;
+        if self.eigenvector_factors.max != self.eigenvector_factors.min {
+            rating += ((eigenvalue - self.eigenvector_factors.min)
+                / (self.eigenvector_factors.max - self.eigenvector_factors.min)
+                * NORMALIZE_TO_VALUE)
+                * self.config.mcda_weights.eigenvector;
+        }
 
         rating
     }
