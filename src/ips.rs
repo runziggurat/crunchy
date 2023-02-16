@@ -302,7 +302,7 @@ impl Ips {
                     }
                 }
             }
-            ratings[node_idx].2 += rating * self.config.location_weight;
+            ratings[node_idx].2 += rating * self.config.mcda_weights.location;
         }
     }
 
@@ -342,22 +342,22 @@ impl Ips {
         let mut rating = ((degree as f64 - self.degree_factors.min)
             / (self.degree_factors.max - self.degree_factors.min)
             * NORMALIZE_TO_VALUE)
-            * self.config.degree_weight;
+            * self.config.mcda_weights.degree;
         // 2. Betweenness
         rating += ((node.betweenness - self.betweenness_factors.min)
             / (self.betweenness_factors.max - self.betweenness_factors.min)
             * NORMALIZE_TO_VALUE)
-            * self.config.betweenness_weight;
+            * self.config.mcda_weights.betweenness;
         // 3. Closeness
         rating += ((node.closeness - self.closeness_factors.min)
             / (self.closeness_factors.max - self.closeness_factors.min)
             * NORMALIZE_TO_VALUE)
-            * self.config.closeness_weight;
+            * self.config.mcda_weights.closeness;
         // 4. Eigenvector
         rating += ((eigenvalue - self.eigenvector_factors.min)
             / (self.eigenvector_factors.max - self.eigenvector_factors.min)
             * NORMALIZE_TO_VALUE)
-            * self.config.eigenvector_weight;
+            * self.config.mcda_weights.eigenvector;
 
         rating
     }

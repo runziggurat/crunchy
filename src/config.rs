@@ -40,6 +40,21 @@ pub struct GeoIPConfiguration {
     pub ipapicom_api_key: Option<String>,
 }
 
+/// Multi-criteria analysis weights
+#[derive(Debug, Clone, Deserialize)]
+pub struct MultiCriteriaAnalysisWeights {
+    /// Weight (importance) of the location factor (used in multi-criteria analysis)
+    pub location: f64,
+    /// Weight (importance) of the degree factor (used in multi-criteria analysis)
+    pub degree: f64,
+    /// Weight (importance) of the eigenvector factor (used in multi-criteria analysis)
+    pub eigenvector: f64,
+    /// Weight (importance) of the betweenness factor (used in multi-criteria analysis)
+    pub betweenness: f64,
+    /// Weight (importance) of the closeness factor (used in multi-criteria analysis)
+    pub closeness: f64,
+}
+
 /// Configuration for Intelligent Peer Sharing module
 #[derive(Debug, Clone, Deserialize)]
 pub struct IPSConfiguration {
@@ -57,22 +72,15 @@ pub struct IPSConfiguration {
     pub change_at_least: u32,
     /// Indicates maximum peers should be changed for each node
     pub change_no_more: u32,
-    /// Weight (importance) of the location factor (used in multi-criteria analysis)
-    pub location_weight: f64,
-    /// Weight (importance) of the degree factor (used in multi-criteria analysis)
-    pub degree_weight: f64,
-    /// Weight (importance) of the eigenvector factor (used in multi-criteria analysis)
-    pub eigenvector_weight: f64,
-    /// Weight (importance) of the betweenness factor (used in multi-criteria analysis)
-    pub betweenness_weight: f64,
-    /// Weight (importance) of the closeness factor (used in multi-criteria analysis)
-    pub closeness_weight: f64,
+    /// Multi-criteria analysis weights
+    pub mcda_weights: MultiCriteriaAnalysisWeights,
 }
 
 impl CrunchyConfiguration {
     pub fn new(conf_path: &str) -> Result<CrunchyConfiguration> {
         let config_string = fs::read_to_string(conf_path)?;
         let crunchy_config: CrunchyConfiguration = toml::from_str(&config_string)?;
+        println!("{:?}", crunchy_config);
         Ok(crunchy_config)
     }
 }
@@ -112,11 +120,19 @@ impl Default for IPSConfiguration {
             geolocation_minmax_distance_km: 1000,
             change_at_least: 1,
             change_no_more: 2,
-            location_weight: 0.1,
-            degree_weight: 0.25,
-            eigenvector_weight: 0.25,
-            betweenness_weight: 0.25,
-            closeness_weight: 0.15,
+            mcda_weights: MultiCriteriaAnalysisWeights::default(),
+        }
+    }
+}
+
+impl Default for MultiCriteriaAnalysisWeights {
+    fn default() -> MultiCriteriaAnalysisWeights {
+        MultiCriteriaAnalysisWeights {
+            location: 0.1,
+            degree: 0.25,
+            eigenvector: 0.25,
+            betweenness: 0.25,
+            closeness: 0.15,
         }
     }
 }
