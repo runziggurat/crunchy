@@ -84,12 +84,21 @@ impl Ips {
         // Normalization step is needed to make sure that all the factors are in the same range and
         // weights can be applied to them.
         self.degree_factors = NormalizationFactors::determine(&degrees.values().cloned().collect());
-        self.eigenvector_factors = NormalizationFactors::determine(&eigenvalues.values().cloned().collect());
+        self.eigenvector_factors =
+            NormalizationFactors::determine(&eigenvalues.values().cloned().collect());
 
-        let betweenness = &state.nodes.iter().map(|n| n.betweenness).collect::<Vec<f64>>();
+        let betweenness = &state
+            .nodes
+            .iter()
+            .map(|n| n.betweenness)
+            .collect::<Vec<f64>>();
         self.betweenness_factors = NormalizationFactors::determine(betweenness);
 
-        let closeness = &state.nodes.iter().map(|n| n.closeness).collect::<Vec<f64>>();
+        let closeness = &state
+            .nodes
+            .iter()
+            .map(|n| n.closeness)
+            .collect::<Vec<f64>>();
         self.closeness_factors = NormalizationFactors::determine(closeness);
 
         // Node rating can be split into two parts: constant and variable depending on the node's
@@ -307,7 +316,9 @@ impl Ips {
     }
 
     fn degree_centrality_avg(&self, degrees: &HashMap<IpAddr, u32>) -> f64 {
-        let sum = degrees.iter().fold(0.0, |acc, (_, &degree)| acc + degree as f64);
+        let sum = degrees
+            .iter()
+            .fold(0.0, |acc, (_, &degree)| acc + degree as f64);
         sum / degrees.len() as f64
     }
 
@@ -382,10 +393,10 @@ impl Ips {
     }
 }
 
-
 impl NormalizationFactors {
     fn determine<T>(list: &Vec<T>) -> NormalizationFactors
-        where T: PartialOrd + Into<f64> + Copy
+    where
+        T: PartialOrd + Into<f64> + Copy,
     {
         let min = list
             .iter()
@@ -396,10 +407,12 @@ impl NormalizationFactors {
             .max_by(|a, b| a.partial_cmp(b).unwrap())
             .unwrap();
 
-        NormalizationFactors { min: (*min).into(), max: (*max).into() }
+        NormalizationFactors {
+            min: (*min).into(),
+            max: (*max).into(),
+        }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
