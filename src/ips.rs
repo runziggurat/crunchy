@@ -83,13 +83,9 @@ impl Ips {
         // Determine factors used for normalization.
         // Normalization step is needed to make sure that all the factors are in the same range and
         // weights can be applied to them.
-        self.degree_factors = NormalizationFactors::determine(
-            &degrees
-                .values()
-                .cloned()
-                .map(|d| d as f64)
-                .collect::<Vec<f64>>(),
-        );
+        self.degree_factors =
+            NormalizationFactors::determine(&degrees.values().cloned().collect::<Vec<u32>>());
+
         self.eigenvector_factors =
             NormalizationFactors::determine(&eigenvalues.values().cloned().collect::<Vec<f64>>());
 
@@ -322,10 +318,7 @@ impl Ips {
     }
 
     fn degree_centrality_avg(&self, degrees: &HashMap<IpAddr, u32>) -> f64 {
-        let sum = degrees
-            .iter()
-            .fold(0.0, |acc, (_, &degree)| acc + degree as f64);
-        sum / degrees.len() as f64
+        (degrees.iter().fold(0, |acc, (_, &degree)| acc + degree) as f64) / degrees.len() as f64
     }
 
     fn rate_node(&self, node: &Node, degree: u32, eigenvalue: f64) -> f64 {

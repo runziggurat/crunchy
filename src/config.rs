@@ -80,7 +80,6 @@ impl CrunchyConfiguration {
     pub fn new(conf_path: &str) -> Result<CrunchyConfiguration> {
         let config_string = fs::read_to_string(conf_path)?;
         let crunchy_config: CrunchyConfiguration = toml::from_str(&config_string)?;
-        println!("{:?}", crunchy_config);
         Ok(crunchy_config)
     }
 }
