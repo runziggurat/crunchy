@@ -83,10 +83,14 @@ impl Ips {
         // Determine factors used for normalization.
         // Normalization step is needed to make sure that all the factors are in the same range and
         // weights can be applied to them.
-        self.determine_degrees_factors(&degrees);
-        self.determine_eigenvalue_factors(&eigenvalues);
-        self.determine_betweenness_factors(&state.nodes);
-        self.determine_closeness_factors(&state.nodes);
+        self.degree_factors = NormalizationFactors::determine(&degrees.values().cloned().collect());
+        self.eigenvector_factors = NormalizationFactors::determine(&eigenvalues.values().cloned().collect());
+
+        let betweenness = &state.nodes.iter().map(|n| n.betweenness).collect::<Vec<f64>>();
+        self.betweenness_factors = NormalizationFactors::determine(betweenness);
+
+        let closeness = &state.nodes.iter().map(|n| n.closeness).collect::<Vec<f64>>();
+        self.closeness_factors = NormalizationFactors::determine(closeness);
 
         // Node rating can be split into two parts: constant and variable depending on the node's
         // location. Now we can compute each node's constant rating based on some graph params.
@@ -303,78 +307,18 @@ impl Ips {
     }
 
     fn degree_centrality_avg(&self, degrees: &HashMap<IpAddr, u32>) -> f64 {
-        let mut sum = 0.0;
-        for degree in degrees.values() {
-            sum += *degree as f64;
-        }
+        let sum = degrees.iter().fold(0.0, |acc, (_, &degree)| acc + degree as f64);
         sum / degrees.len() as f64
-    }
-
-    fn determine_degrees_factors(&mut self, degrees: &HashMap<IpAddr, u32>) {
-        let min = *degrees
-            .iter()
-            .min_by(|a, b| a.1.cmp(b.1))
-            .map(|m| m.1)
-            .unwrap();
-        let max = *degrees
-            .iter()
-            .max_by(|a, b| a.1.cmp(b.1))
-            .map(|m| m.1)
-            .unwrap();
-
-        self.degree_factors = NormalizationFactors {
-            min: min as f64,
-            max: max as f64,
-        };
-    }
-
-    fn determine_eigenvalue_factors(&mut self, eigenvalues: &HashMap<IpAddr, f64>) {
-        let min = *eigenvalues
-            .iter()
-            .min_by(|a, b| a.1.partial_cmp(b.1).unwrap())
-            .map(|m| m.1)
-            .unwrap();
-        let max = *eigenvalues
-            .iter()
-            .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
-            .map(|m| m.1)
-            .unwrap();
-
-        self.eigenvector_factors = NormalizationFactors { min, max };
-    }
-
-    fn determine_betweenness_factors(&mut self, nodes: &[Node]) {
-        let min = nodes
-            .iter()
-            .min_by(|a, b| a.betweenness.partial_cmp(&b.betweenness).unwrap())
-            .map(|m| m.betweenness)
-            .unwrap();
-        let max = nodes
-            .iter()
-            .max_by(|a, b| a.betweenness.partial_cmp(&b.betweenness).unwrap())
-            .map(|m| m.betweenness)
-            .unwrap();
-
-        self.betweenness_factors = NormalizationFactors { min, max };
-    }
-
-    fn determine_closeness_factors(&mut self, nodes: &[Node]) {
-        let min = nodes
-            .iter()
-            .min_by(|a, b| a.closeness.partial_cmp(&b.closeness).unwrap())
-            .map(|m| m.closeness)
-            .unwrap();
-        let max = nodes
-            .iter()
-            .max_by(|a, b| a.closeness.partial_cmp(&b.closeness).unwrap())
-            .map(|m| m.closeness)
-            .unwrap();
-
-        self.closeness_factors = NormalizationFactors { min, max };
     }
 
     fn rate_node(&self, node: &Node, degree: u32, eigenvalue: f64) -> f64 {
         // Calculate rating for node
+
+        // First, check if the factors are not equal, otherwise we will get a division by zero
+        assert_ne!(self.degree_factors.max, self.degree_factors.min);
+        assert_ne!(self.eigenvector_factors.max, self.eigenvector_factors.min);
+        assert_ne!(self.betweenness_factors.max, self.betweenness_factors.min);
+        assert_ne!(self.closeness_factors.max, self.closeness_factors.min);
 
         // Rating is a combination of the following factors:
         // 1. Degree
@@ -437,6 +381,25 @@ impl Ips {
         islands
     }
 }
+
+
+impl NormalizationFactors {
+    fn determine<T>(list: &Vec<T>) -> NormalizationFactors
+        where T: PartialOrd + Into<f64> + Copy
+    {
+        let min = list
+            .iter()
+            .min_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap();
+        let max = list
+            .iter()
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap();
+
+        NormalizationFactors { min: (*min).into(), max: (*max).into() }
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
