@@ -156,11 +156,11 @@ impl Ips {
             // nodes should pursue to degree_delta level. That could be bad if graph's vertexes
             // have very high (or low) degrees and therefore, delta is very high (or low) too. But until
             // we have some better idea this one is the best we can do to keep up with the graph.
-            let desired_degree = (degree_avg as u32 + degrees.get(&node_ip).unwrap()) / 2;
+            let desired_degree = ((degree_avg + *degrees.get(&node_ip).unwrap() as f64) / 2.0).round() as u32;
 
             // 3 - Calculate how many peers to add or delete from peerlist
             let peers_to_delete_count = if desired_degree < *degrees.get(&node_ip).unwrap() {
-                degrees.get(&node_ip).unwrap() - desired_degree
+                (*degrees.get(&node_ip).unwrap()).saturating_sub( desired_degree)
             } else {
                 // Check if config forces to change peerlist even if we have good degree.
                 // This should be always set to at least one to allow for some changes in graph -
@@ -171,7 +171,7 @@ impl Ips {
             // Calculating how many peers should be added. If we have more peers than desired degree
             // we will add at least config.change_at_least peers.
             let mut peers_to_add_count = if desired_degree > *degrees.get(&node_ip).unwrap() {
-                desired_degree - degrees.get(&node_ip).unwrap() + peers_to_delete_count
+                desired_degree.saturating_sub(*degrees.get(&node_ip).unwrap()).saturating_add(peers_to_delete_count)
             } else {
                 self.config.change_at_least
             };
@@ -274,25 +274,25 @@ impl Ips {
                     geo_info.longitude.unwrap_or_default(),
                 );
                 let distance = selected_location.distance_to(&location).unwrap().meters();
-                let pref_distance = self.config.geolocation_minmax_distance_km as f64 * 1000.0;
+                let minmax_distance_m = self.config.geolocation_minmax_distance_km as f64 * 1000.0;
 
                 // Map distance to some levels of rating - now they are taken arbitrarily but
                 // they should be somehow related to the distance.
                 if self.config.use_closer_geolocation {
                     match distance {
-                        _ if distance < pref_distance => rating = NORMALIZE_TO_VALUE,
-                        _ if distance < 2.0 * pref_distance => {
+                        _ if distance < minmax_distance_m => rating = NORMALIZE_TO_VALUE,
+                        _ if distance < 2.0 * minmax_distance_m => {
                             rating = NORMALIZE_TO_VALUE * 2.0 / 3.0
                         }
-                        _ if distance < 3.0 * pref_distance => {
+                        _ if distance < 3.0 * minmax_distance_m => {
                             rating = NORMALIZE_TO_VALUE * 1.0 / 3.0
                         }
                         _ => rating = 0.0,
                     }
                 } else {
                     match distance {
-                        _ if distance < 0.5 * pref_distance => rating = 0.0,
-                        _ if distance < pref_distance => rating = NORMALIZE_TO_VALUE / 2.0,
+                        _ if distance < 0.5 * minmax_distance_m => rating = 0.0,
+                        _ if distance < minmax_distance_m => rating = NORMALIZE_TO_VALUE / 2.0,
                         _ => rating = NORMALIZE_TO_VALUE,
                     }
                 }
