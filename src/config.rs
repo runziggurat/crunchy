@@ -127,11 +127,11 @@ impl Default for IPSConfiguration {
 impl Default for MultiCriteriaAnalysisWeights {
     fn default() -> MultiCriteriaAnalysisWeights {
         MultiCriteriaAnalysisWeights {
-            location: 0.1,
+            location: 0.3,
             degree: 0.25,
-            eigenvector: 0.25,
+            eigenvector: 0.1,
             betweenness: 0.25,
-            closeness: 0.15,
+            closeness: 0.1,
         }
     }
 }
