@@ -45,6 +45,10 @@ pub struct Peer {
 }
 
 const NORMALIZE_TO_VALUE: f64 = 100.0;
+const NORMALIZE_HALF: f64 = NORMALIZE_TO_VALUE / 2.0;
+const NORMALIZE_2_3: f64 = NORMALIZE_TO_VALUE * 2.0 / 3.0;
+const NORMALIZE_1_3: f64 = NORMALIZE_TO_VALUE * 1.0 / 3.0;
+
 #[derive(Default, Clone)]
 struct NormalizationFactors {
     min: f64,
@@ -292,18 +296,14 @@ impl Ips {
                 if self.config.use_closer_geolocation {
                     match distance {
                         _ if distance < minmax_distance_m => rating = NORMALIZE_TO_VALUE,
-                        _ if distance < 2.0 * minmax_distance_m => {
-                            rating = NORMALIZE_TO_VALUE * 2.0 / 3.0
-                        }
-                        _ if distance < 3.0 * minmax_distance_m => {
-                            rating = NORMALIZE_TO_VALUE * 1.0 / 3.0
-                        }
+                        _ if distance < 2.0 * minmax_distance_m => rating = NORMALIZE_2_3,
+                        _ if distance < 3.0 * minmax_distance_m => rating = NORMALIZE_1_3,
                         _ => rating = 0.0,
                     }
                 } else {
                     match distance {
                         _ if distance < 0.5 * minmax_distance_m => rating = 0.0,
-                        _ if distance < minmax_distance_m => rating = NORMALIZE_TO_VALUE / 2.0,
+                        _ if distance < minmax_distance_m => rating = NORMALIZE_HALF,
                         _ => rating = NORMALIZE_TO_VALUE,
                     }
                 }
