@@ -49,6 +49,10 @@ const NORMALIZE_HALF: f64 = NORMALIZE_TO_VALUE / 2.0;
 const NORMALIZE_2_3: f64 = NORMALIZE_TO_VALUE * 2.0 / 3.0;
 const NORMALIZE_1_3: f64 = NORMALIZE_TO_VALUE * 1.0 / 3.0;
 
+const ERR_PARSE_IP: &str = "failed to parse IP address";
+const ERR_GET_DEGREE: &str = "failed to get degree";
+const ERR_GET_EIGENVECTOR: &str = "failed to get eigenvector";
+
 #[derive(Default, Clone)]
 struct NormalizationFactors {
     min: f64,
@@ -117,21 +121,21 @@ impl Ips {
         // to be able to easily get the node from nodes vector after sorting.
         let mut const_factors = Vec::with_capacity(state.nodes.len());
         for node_idx in 0..state.nodes.len() {
-            let ip = IpAddr::from_str(state.nodes[node_idx].ip.as_str()).unwrap();
+            let ip = IpAddr::from_str(state.nodes[node_idx].ip.as_str()).expect(ERR_PARSE_IP);
             const_factors.push((
                 ip,
                 node_idx,
                 self.rate_node(
                     &state.nodes[node_idx],
-                    *degrees.get(&ip).unwrap(), // should be safe to unwrap here
-                    *eigenvalues.get(&ip).unwrap(),
+                    *degrees.get(&ip).expect(ERR_GET_DEGREE), // should be safe to unwrap here as degree hashmap is constructed from the same nodes as the state.nodes
+                    *eigenvalues.get(&ip).expect(ERR_GET_EIGENVECTOR), // should be safe to unwrap here as eigenvector hashmap is constructed from the same nodes as the state.nodes
                 ),
             ));
         }
 
         // Iterate over nodes to generate peerlist entry for each node
         for (node_idx, node) in state.nodes.iter().enumerate() {
-            let node_ip = IpAddr::from_str(node.ip.as_str()).unwrap();
+            let node_ip = IpAddr::from_str(node.ip.as_str()).expect(ERR_PARSE_IP);
 
             // Clone const factors for each node to be able to modify them
             let mut peer_ratings = const_factors.clone();
@@ -157,23 +161,25 @@ impl Ips {
             for peer in &agraph[node_idx] {
                 peer_list_entry
                     .list
-                    .push(IpAddr::from_str(state.nodes[*peer].ip.as_str()).unwrap());
+                    .push(IpAddr::from_str(state.nodes[*peer].ip.as_str()).expect(ERR_PARSE_IP));
 
                 // Remember current peer ratings
                 curr_peer_ratings.push(peer_ratings[*peer]);
             }
+
+            // Get current node's degree for further computations
+            let degree = *degrees.get(&node_ip).expect(ERR_GET_DEGREE);
 
             // 2 - Calculate desired vertex degree
             // In the first iteration we will use degree average so all nodes should pursue to
             // that level. That could be bad if graph's vertexes have very high (or low) degrees
             // and therefore, delta is very high (or low) too. But until we have some better idea
             // this one is the best we can do to keep up with the graph.
-            let desired_degree =
-                ((degree_avg + *degrees.get(&node_ip).unwrap() as f64) / 2.0).round() as u32;
+            let desired_degree = ((degree_avg + degree as f64) / 2.0).round() as u32;
 
             // 3 - Calculate how many peers to add or delete from peerlist
-            let peers_to_delete_count = if desired_degree < *degrees.get(&node_ip).unwrap() {
-                (*degrees.get(&node_ip).unwrap()).saturating_sub(desired_degree)
+            let peers_to_delete_count = if desired_degree < degree {
+                degree.saturating_sub(desired_degree)
             } else {
                 // Check if config forces to change peerlist even if we have good degree.
                 // This should be always set to at least one to allow for some changes in graph -
@@ -183,9 +189,9 @@ impl Ips {
 
             // Calculating how many peers should be added. If we have more peers than desired degree
             // we will add at least config.change_at_least peers.
-            let mut peers_to_add_count = if desired_degree > *degrees.get(&node_ip).unwrap() {
+            let mut peers_to_add_count = if desired_degree > degree {
                 desired_degree
-                    .saturating_sub(*degrees.get(&node_ip).unwrap())
+                    .saturating_sub(degree)
                     .saturating_add(peers_to_delete_count)
             } else {
                 self.config.change_at_least
@@ -306,8 +312,8 @@ impl Ips {
         for i in 0..agraph.len() {
             for j in 0..agraph[i].len() {
                 let edge = Edge::new(
-                    IpAddr::from_str(nodes[i].ip.as_str()).unwrap(),
-                    IpAddr::from_str(nodes[j].ip.as_str()).unwrap(),
+                    IpAddr::from_str(nodes[i].ip.as_str()).expect(ERR_PARSE_IP),
+                    IpAddr::from_str(nodes[j].ip.as_str()).expect(ERR_PARSE_IP),
                 );
                 graph.insert(edge);
             }
@@ -458,7 +464,7 @@ mod tests {
         for i in 0..10 {
             let ip = format!("192.168.0.{i}");
 
-            ipaddrs.push(IpAddr::from_str(ip.as_str()).unwrap());
+            ipaddrs.push(IpAddr::from_str(ip.as_str()).expect(ERR_PARSE_IP));
 
             let node = Node {
                 ip: ip.clone(),
@@ -474,8 +480,8 @@ mod tests {
                     continue;
                 }
                 graph.insert(Edge::new(
-                    IpAddr::from_str(nodes[i].ip.as_str()).unwrap(),
-                    IpAddr::from_str(nodes[j].ip.as_str()).unwrap(),
+                    IpAddr::from_str(nodes[i].ip.as_str()).expect(ERR_PARSE_IP),
+                    IpAddr::from_str(nodes[j].ip.as_str()).expect(ERR_PARSE_IP),
                 ));
             }
         }
@@ -497,7 +503,7 @@ mod tests {
         for i in 0..10 {
             let ip = format!("192.169.0.{i}");
 
-            ipaddrs.push(IpAddr::from_str(ip.as_str()).unwrap());
+            ipaddrs.push(IpAddr::from_str(ip.as_str()).expect(ERR_PARSE_IP));
 
             let node = Node {
                 ip: ip.clone(),
@@ -513,8 +519,8 @@ mod tests {
                     continue;
                 }
                 graph.insert(Edge::new(
-                    IpAddr::from_str(nodes[i].ip.as_str()).unwrap(),
-                    IpAddr::from_str(nodes[j].ip.as_str()).unwrap(),
+                    IpAddr::from_str(nodes[i].ip.as_str()).expect(ERR_PARSE_IP),
+                    IpAddr::from_str(nodes[j].ip.as_str()).expect(ERR_PARSE_IP),
                 ));
             }
         }
