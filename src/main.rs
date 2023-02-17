@@ -3,19 +3,22 @@ mod geoip_cache;
 mod ips;
 mod nodes;
 
-use clap::Parser;
-
-use crate::geoip_cache::GeoIPCache;
-use crate::ips::Ips;
-
 use std::{fs, path::PathBuf, time::Instant};
 
-use crate::config::CrunchyConfiguration;
-use crate::nodes::{create_nodes, Node};
+use clap::Parser;
 use serde::{Deserialize, Serialize};
 use ziggurat_core_crawler::summary::NetworkSummary;
-use ziggurat_core_geoip::providers::ip2loc::Ip2LocationService;
-use ziggurat_core_geoip::providers::ipgeoloc::{BackendProvider, IpGeolocateService};
+use ziggurat_core_geoip::providers::{
+    ip2loc::Ip2LocationService,
+    ipgeoloc::{BackendProvider, IpGeolocateService},
+};
+
+use crate::{
+    config::CrunchyConfiguration,
+    geoip_cache::GeoIPCache,
+    ips::Ips,
+    nodes::{create_nodes, Node},
+};
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct CrunchyState {

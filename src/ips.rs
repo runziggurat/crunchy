@@ -10,16 +10,20 @@
 // as step by step process, so it is easy to add new steps or change the order of the steps.
 // Especially, there could be a need to add some modifiers to the ranking.
 
-use crate::config::IPSConfiguration;
-use crate::{CrunchyState, Node};
+use std::{
+    collections::{HashMap, HashSet, VecDeque},
+    net::IpAddr,
+    str::FromStr,
+};
+
 use geoutils::Location;
 use serde::{Deserialize, Serialize};
-use spectre::edge::Edge;
-use spectre::graph::{AGraph, Graph};
-use std::collections::HashMap;
-use std::collections::{HashSet, VecDeque};
-use std::net::IpAddr;
-use std::str::FromStr;
+use spectre::{
+    edge::Edge,
+    graph::{AGraph, Graph},
+};
+
+use crate::{config::IPSConfiguration, CrunchyState, Node};
 
 /// Intelligent Peer Sharing (IPS) module structure
 #[derive(Default, Clone)]
@@ -156,11 +160,12 @@ impl Ips {
             // nodes should pursue to degree_delta level. That could be bad if graph's vertexes
             // have very high (or low) degrees and therefore, delta is very high (or low) too. But until
             // we have some better idea this one is the best we can do to keep up with the graph.
-            let desired_degree = ((degree_avg + *degrees.get(&node_ip).unwrap() as f64) / 2.0).round() as u32;
+            let desired_degree =
+                ((degree_avg + *degrees.get(&node_ip).unwrap() as f64) / 2.0).round() as u32;
 
             // 3 - Calculate how many peers to add or delete from peerlist
             let peers_to_delete_count = if desired_degree < *degrees.get(&node_ip).unwrap() {
-                (*degrees.get(&node_ip).unwrap()).saturating_sub( desired_degree)
+                (*degrees.get(&node_ip).unwrap()).saturating_sub(desired_degree)
             } else {
                 // Check if config forces to change peerlist even if we have good degree.
                 // This should be always set to at least one to allow for some changes in graph -
@@ -171,7 +176,9 @@ impl Ips {
             // Calculating how many peers should be added. If we have more peers than desired degree
             // we will add at least config.change_at_least peers.
             let mut peers_to_add_count = if desired_degree > *degrees.get(&node_ip).unwrap() {
-                desired_degree.saturating_sub(*degrees.get(&node_ip).unwrap()).saturating_add(peers_to_delete_count)
+                desired_degree
+                    .saturating_sub(*degrees.get(&node_ip).unwrap())
+                    .saturating_add(peers_to_delete_count)
             } else {
                 self.config.change_at_least
             };
@@ -417,8 +424,9 @@ impl NormalizationFactors {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use spectre::edge::Edge;
+
+    use super::*;
 
     #[test]
     fn normalization_factors_determine_test() {

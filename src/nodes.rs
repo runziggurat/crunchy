@@ -1,10 +1,10 @@
-use crate::geoip_cache::GeoIPCache;
-use ziggurat_core_geoip::geoip::GeoInfo;
-
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
 use spectre::graph::{AGraph, Graph};
+use ziggurat_core_geoip::geoip::GeoInfo;
+
+use crate::geoip_cache::GeoIPCache;
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct Node {
