@@ -43,15 +43,15 @@ pub struct GeoIPConfiguration {
 /// Multi-criteria analysis weights
 #[derive(Debug, Clone, Deserialize)]
 pub struct MultiCriteriaAnalysisWeights {
-    /// Weight (importance) of the location factor (used in multi-criteria analysis)
+    /// Weight (importance) of the location factor
     pub location: f64,
-    /// Weight (importance) of the degree factor (used in multi-criteria analysis)
+    /// Weight (importance) of the degree factor
     pub degree: f64,
-    /// Weight (importance) of the eigenvector factor (used in multi-criteria analysis)
+    /// Weight (importance) of the eigenvector factor
     pub eigenvector: f64,
-    /// Weight (importance) of the betweenness factor (used in multi-criteria analysis)
+    /// Weight (importance) of the betweenness factor
     pub betweenness: f64,
-    /// Weight (importance) of the closeness factor (used in multi-criteria analysis)
+    /// Weight (importance) of the closeness factor
     pub closeness: f64,
 }
 

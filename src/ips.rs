@@ -156,10 +156,10 @@ impl Ips {
             }
 
             // 2 - Calculate desired vertex degree
-            // In the first iteration we will use avg of degree and degree_delta so all
-            // nodes should pursue to degree_delta level. That could be bad if graph's vertexes
-            // have very high (or low) degrees and therefore, delta is very high (or low) too. But until
-            // we have some better idea this one is the best we can do to keep up with the graph.
+            // In the first iteration we will use degree average so all nodes should pursue to
+            // that level. That could be bad if graph's vertexes have very high (or low) degrees
+            // and therefore, delta is very high (or low) too. But until we have some better idea
+            // this one is the best we can do to keep up with the graph.
             let desired_degree =
                 ((degree_avg + *degrees.get(&node_ip).unwrap() as f64) / 2.0).round() as u32;
 
