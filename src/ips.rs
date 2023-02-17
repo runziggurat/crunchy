@@ -212,29 +212,17 @@ impl Ips {
 
             // 5 - Find peers to add from selected peers (based on rating)
             if peers_to_add_count > 0 {
-                // Take twice as many candidates as we need to add to peerlist to be able to
-                // choose best ones from them.
-                let mut candidates_to_search = peers_to_add_count * 2;
-
-                let mut candidates: Vec<(IpAddr, usize, f64)> =
-                    Vec::with_capacity(candidates_to_search as usize);
-
                 // Sort peers by rating
                 peer_ratings.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap());
 
-                // Add peers with highest rating as candidates
-                for peer in peer_ratings.iter() {
-                    // Check if peer is already in peerlist - if so go to next one
-                    if peer_list_entry.list.contains(&peer.0) {
-                        continue;
-                    }
+                // Remove peers that are already in peerlist
+                peer_ratings.retain(|x| !peer_list_entry.list.contains(&x.0));
 
-                    candidates.push(*peer);
-                    candidates_to_search -= 1;
-                    if candidates_to_search == 0 {
-                        break;
-                    }
-                }
+                let mut candidates = peer_ratings
+                    .iter()
+                    .take((peers_to_add_count * 2) as usize) // Take twice as many candidates
+                    .copied()
+                    .collect::<Vec<_>>();
 
                 // Here we have 2*peers_to_add_count candidates to add sorted by ranking.
                 // We need to choose best ones from them - let's choose those with lowest
