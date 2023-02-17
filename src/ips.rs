@@ -131,6 +131,10 @@ impl Ips {
 
             // Clone const factors for each node to be able to modify them
             let mut peer_ratings = const_factors.clone();
+
+            // Remove node itself to ensure we don't add it to peerlist
+            peer_ratings.retain(|x| x.1 != node_idx);
+
             let mut curr_peer_ratings: Vec<(IpAddr, usize, f64)> = Vec::new();
 
             let mut peer_list_entry = Peer {
@@ -151,7 +155,7 @@ impl Ips {
                     .list
                     .push(IpAddr::from_str(state.nodes[*peer].ip.as_str()).unwrap());
 
-                // Remeber current peer ratings
+                // Remember current peer ratings
                 curr_peer_ratings.push(peer_ratings[*peer]);
             }
 
