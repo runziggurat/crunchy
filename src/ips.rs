@@ -326,22 +326,22 @@ impl Ips {
         let mut rating = 0.0;
 
         // 1. Degree
-        rating += self.degree_factors.lerp(degree as f64)
+        rating += self.degree_factors.scale(degree as f64)
             * NORMALIZE_TO_VALUE
             * self.config.mcda_weights.degree;
 
         // 2. Betweenness
-        rating += self.betweenness_factors.lerp(node.betweenness)
+        rating += self.betweenness_factors.scale(node.betweenness)
             * NORMALIZE_TO_VALUE
             * self.config.mcda_weights.betweenness;
 
         // 3. Closeness
-        rating += self.closeness_factors.lerp(node.closeness)
+        rating += self.closeness_factors.scale(node.closeness)
             * NORMALIZE_TO_VALUE
             * self.config.mcda_weights.closeness;
 
         // 4. Eigenvector
-        rating += self.eigenvector_factors.lerp(eigenvalue)
+        rating += self.eigenvector_factors.scale(eigenvalue)
             * NORMALIZE_TO_VALUE
             * self.config.mcda_weights.eigenvector;
 
@@ -386,6 +386,7 @@ impl Ips {
 }
 
 impl NormalizationFactors {
+    /// Determine min and max values for normalization.
     fn determine<T>(list: &[T]) -> NormalizationFactors
     where
         T: PartialOrd + Into<f64> + Copy,
@@ -405,7 +406,8 @@ impl NormalizationFactors {
         }
     }
 
-    fn lerp(&self, value: f64) -> f64 {
+    /// Scale value to [0.0, 1.0] range.
+    fn scale(&self, value: f64) -> f64 {
         if self.min == self.max {
             return 0.0;
         }
@@ -434,7 +436,7 @@ mod tests {
         let factors = NormalizationFactors { min: 1.0, max: 5.0 };
         let value = 3.0;
 
-        assert_eq!(factors.lerp(value), 0.5);
+        assert_eq!(factors.scale(value), 0.5);
     }
 
     #[test]
@@ -442,7 +444,7 @@ mod tests {
         let factors = NormalizationFactors { min: 2.0, max: 2.0 };
         let value = 3.0;
 
-        assert_eq!(factors.lerp(value), 0.0);
+        assert_eq!(factors.scale(value), 0.0);
     }
 
     #[tokio::test]
