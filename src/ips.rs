@@ -142,14 +142,13 @@ impl Ips {
             }
 
             // Load peerlist with current connections (we don't want to change everything)
-            for (peer_idx, rating) in peer_ratings.iter().enumerate().take(agraph[node_idx].len()) {
-                let peer = agraph[node_idx][peer_idx];
+            for peer in &agraph[node_idx] {
                 peer_list_entry
                     .list
-                    .push(IpAddr::from_str(state.nodes[peer].ip.as_str()).unwrap());
+                    .push(IpAddr::from_str(state.nodes[*peer].ip.as_str()).unwrap());
 
                 // Remeber current peer ratings
-                curr_peer_ratings.push(*rating);
+                curr_peer_ratings.push(peer_ratings[*peer]);
             }
 
             // 2 - Calculate desired vertex degree
