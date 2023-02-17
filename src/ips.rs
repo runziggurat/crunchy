@@ -322,41 +322,30 @@ impl Ips {
     }
 
     fn rate_node(&self, node: &Node, degree: u32, eigenvalue: f64) -> f64 {
-        // Calculate rating for node
+        // Calculate rating for node (if min == max for normalization factors then rating is
+        // not increased for that factor as lerp() returns 0.0).
         // Rating is a combination of the following factors:
         let mut rating = 0.0;
 
         // 1. Degree
-        if self.degree_factors.max != self.degree_factors.min {
-            rating += ((degree as f64 - self.degree_factors.min)
-                / (self.degree_factors.max - self.degree_factors.min)
-                * NORMALIZE_TO_VALUE)
-                * self.config.mcda_weights.degree;
-        }
+        rating += self.degree_factors.lerp(degree as f64)
+            * NORMALIZE_TO_VALUE
+            * self.config.mcda_weights.degree;
 
         // 2. Betweenness
-        if self.betweenness_factors.max != self.betweenness_factors.min {
-            rating += ((node.betweenness - self.betweenness_factors.min)
-                / (self.betweenness_factors.max - self.betweenness_factors.min)
-                * NORMALIZE_TO_VALUE)
-                * self.config.mcda_weights.betweenness;
-        }
+        rating += self.betweenness_factors.lerp(node.betweenness)
+            * NORMALIZE_TO_VALUE
+            * self.config.mcda_weights.betweenness;
 
         // 3. Closeness
-        if self.closeness_factors.max != self.closeness_factors.min {
-            rating += ((node.closeness - self.closeness_factors.min)
-                / (self.closeness_factors.max - self.closeness_factors.min)
-                * NORMALIZE_TO_VALUE)
-                * self.config.mcda_weights.closeness;
-        }
+        rating += self.closeness_factors.lerp(node.closeness)
+            * NORMALIZE_TO_VALUE
+            * self.config.mcda_weights.closeness;
 
         // 4. Eigenvector
-        if self.eigenvector_factors.max != self.eigenvector_factors.min {
-            rating += ((eigenvalue - self.eigenvector_factors.min)
-                / (self.eigenvector_factors.max - self.eigenvector_factors.min)
-                * NORMALIZE_TO_VALUE)
-                * self.config.mcda_weights.eigenvector;
-        }
+        rating += self.eigenvector_factors.lerp(eigenvalue)
+            * NORMALIZE_TO_VALUE
+            * self.config.mcda_weights.eigenvector;
 
         rating
     }
@@ -417,12 +406,45 @@ impl NormalizationFactors {
             max: (*max).into(),
         }
     }
+
+    fn lerp(&self, value: f64) -> f64 {
+        if self.min == self.max {
+            return 0.0;
+        }
+
+        (value - self.min) / (self.max - self.min)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use spectre::edge::Edge;
+
+    #[test]
+    fn normalization_factors_determine_test() {
+        let list = vec![1, 2, 3, 4, 5];
+        let factors = NormalizationFactors::determine(&list);
+
+        assert_eq!(factors.min, 1.0);
+        assert_eq!(factors.max, 5.0);
+    }
+
+    #[test]
+    fn normalization_factors_lerp_test() {
+        let factors = NormalizationFactors { min: 1.0, max: 5.0 };
+        let value = 3.0;
+
+        assert_eq!(factors.lerp(value), 0.5);
+    }
+
+    #[test]
+    fn normalization_factors_lerp_divide_zero_test() {
+        let factors = NormalizationFactors { min: 2.0, max: 2.0 };
+        let value = 3.0;
+
+        assert_eq!(factors.lerp(value), 0.0);
+    }
 
     #[tokio::test]
     async fn detect_islands_test_no_islands() {
