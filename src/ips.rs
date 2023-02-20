@@ -123,13 +123,13 @@ impl Ips {
         // Vector contains IpAddr, node index (from the state.nodes) and rating. We need index just
         // to be able to easily get the node from nodes vector after sorting.
         let mut const_factors = Vec::with_capacity(state.nodes.len());
-        for node_idx in 0..state.nodes.len() {
-            let ip = IpAddr::from_str(state.nodes[node_idx].ip.as_str()).expect(ERR_PARSE_IP);
+        for (idx, node) in state.nodes.iter().enumerate() {
+            let ip = IpAddr::from_str(node.ip.as_str()).expect(ERR_PARSE_IP);
             const_factors.push((
                 ip,
-                node_idx,
+                idx,
                 self.rate_node(
-                    &state.nodes[node_idx],
+                    node,
                     *degrees.get(&ip).expect(ERR_GET_DEGREE), // should be safe to unwrap here as degree hashmap is constructed from the same nodes as the state.nodes
                     *eigenvalues.get(&ip).expect(ERR_GET_EIGENVECTOR), // should be safe to unwrap here as eigenvector hashmap is constructed from the same nodes as the state.nodes
                 ),
