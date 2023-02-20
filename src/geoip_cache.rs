@@ -96,7 +96,6 @@ impl GeoIPCache {
 
     async fn check_cache(&self, ip: IpAddr) -> Option<GeoInfo> {
         let mut remove_entry = false;
-
         {
             let cache = self.cache.read().await;
             let res = cache.entries.get(&ip);

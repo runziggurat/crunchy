@@ -16,7 +16,6 @@ use std::{
     str::FromStr,
 };
 
-use geoutils::Location;
 use serde::{Deserialize, Serialize};
 use spectre::{
     edge::Edge,
@@ -273,16 +272,16 @@ impl Ips {
         nodes: &[Node],
         ratings: &mut [PeerEntry],
     ) {
-        let selected_location = &selected_node
-            .geolocation
-            .as_ref()
-            .map(|geo_info| {
-                Location::new(
-                    geo_info.latitude.unwrap_or_default(), // TODO(asmie): refactor when zg-core will be updated with Location
-                    geo_info.longitude.unwrap_or_default(),
-                )
-            })
-            .unwrap_or(Location::new(0.0, 0.0));
+        if selected_node.geolocation.is_none() {
+            return;
+        }
+
+        let selected_location =
+            if let Some(location) = selected_node.geolocation.as_ref().unwrap().location {
+                location
+            } else {
+                return;
+            };
 
         for (node_idx, node) in nodes.iter().enumerate() {
             if node.geolocation.is_none() {
@@ -290,11 +289,11 @@ impl Ips {
             }
 
             let geo_info = node.geolocation.as_ref().unwrap();
-            let location = Location::new(
-                geo_info.latitude.unwrap_or_default(),
-                geo_info.longitude.unwrap_or_default(),
-            );
-            let distance = selected_location.distance_to(&location).unwrap().meters();
+            if geo_info.location.is_none() {
+                continue;
+            }
+
+            let distance = selected_location.distance_to(geo_info.location.unwrap());
             let minmax_distance_m = self.config.geolocation_minmax_distance_km as f64 * 1000.0;
 
             // Map distance to some levels of rating - now they are taken arbitrarily but
