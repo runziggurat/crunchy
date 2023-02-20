@@ -47,6 +47,17 @@ pub struct Peer {
     pub list: Vec<IpAddr>,
 }
 
+/// Internal structure for storing peer information
+#[derive(Copy, Clone)]
+struct PeerEntry {
+    /// IP address of the peer
+    pub ip: IpAddr,
+    /// Index of the peer in the state.nodes
+    pub index: usize,
+    /// Ranking of the peer
+    pub rating: f64,
+}
+
 const NORMALIZE_TO_VALUE: f64 = 100.0;
 const NORMALIZE_HALF: f64 = NORMALIZE_TO_VALUE / 2.0;
 const NORMALIZE_2_3: f64 = NORMALIZE_TO_VALUE * 2.0 / 3.0;
@@ -125,15 +136,15 @@ impl Ips {
         let mut const_factors = Vec::with_capacity(state.nodes.len());
         for (idx, node) in state.nodes.iter().enumerate() {
             let ip = IpAddr::from_str(node.ip.as_str()).expect(ERR_PARSE_IP);
-            const_factors.push((
+            const_factors.push(PeerEntry {
                 ip,
-                idx,
-                self.rate_node(
+                index: idx,
+                rating: self.rate_node(
                     node,
                     *degrees.get(&ip).expect(ERR_GET_DEGREE), // should be safe to unwrap here as degree hashmap is constructed from the same nodes as the state.nodes
                     *eigenvalues.get(&ip).expect(ERR_GET_EIGENVECTOR), // should be safe to unwrap here as eigenvector hashmap is constructed from the same nodes as the state.nodes
                 ),
-            ));
+            });
         }
 
         // Iterate over nodes to generate peerlist entry for each node
@@ -143,10 +154,7 @@ impl Ips {
             // Clone const factors for each node to be able to modify them
             let mut peer_ratings = const_factors.clone();
 
-            // Remove node itself to ensure we don't add it to peerlist
-            peer_ratings.retain(|x| x.1 != node_idx);
-
-            let mut curr_peer_ratings: Vec<(IpAddr, usize, f64)> = Vec::new();
+            let mut curr_peer_ratings: Vec<PeerEntry> = Vec::new();
 
             let mut peer_list_entry = Peer {
                 ip: node_ip,
@@ -205,8 +213,11 @@ impl Ips {
                 peers_to_add_count = self.config.change_no_more;
             }
 
+            // Remove node itself to ensure we don't add it to peerlist
+            peer_ratings.retain(|x| x.index != node_idx);
+
             // Sort peers by rating (highest first)
-            curr_peer_ratings.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap());
+            curr_peer_ratings.sort_by(|a, b| b.rating.partial_cmp(&a.rating).unwrap());
 
             // 4 - Choose peers to delete from peerlist (based on ranking)
             while peers_to_delete_count > 0 && curr_peer_ratings.pop().is_some() {
@@ -216,10 +227,10 @@ impl Ips {
             // 5 - Find peers to add from selected peers (based on rating)
             if peers_to_add_count > 0 {
                 // Sort peers by rating
-                peer_ratings.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap());
+                peer_ratings.sort_by(|a, b| b.rating.partial_cmp(&a.rating).unwrap());
 
                 // Remove peers that are already in peerlist
-                peer_ratings.retain(|x| !peer_list_entry.list.contains(&x.0));
+                peer_ratings.retain(|x| !peer_list_entry.list.contains(&x.ip));
 
                 let mut candidates = peer_ratings
                     .iter()
@@ -232,14 +243,14 @@ impl Ips {
                 // betweenness factor - just to avoid creating "hot" nodes that have very high
                 // importance to the network which can be risky if such node goes down.
                 candidates.sort_by(|a, b| {
-                    state.nodes[a.1]
+                    state.nodes[a.index]
                         .betweenness
-                        .partial_cmp(&state.nodes[b.1].betweenness)
+                        .partial_cmp(&state.nodes[b.index].betweenness)
                         .unwrap()
                 });
 
                 for peer in candidates.iter().take(peers_to_add_count as usize) {
-                    peer_list_entry.list.push(peer.0);
+                    peer_list_entry.list.push(peer.ip);
                 }
             }
 
@@ -260,7 +271,7 @@ impl Ips {
         &self,
         selected_node: &Node,
         nodes: &[Node],
-        ratings: &mut [(IpAddr, usize, f64)],
+        ratings: &mut [PeerEntry],
     ) {
         let selected_location = &selected_node
             .geolocation
@@ -302,7 +313,7 @@ impl Ips {
                     _ => NORMALIZE_TO_VALUE,
                 }
             };
-            ratings[node_idx].2 += rating * self.config.mcda_weights.location;
+            ratings[node_idx].rating += rating * self.config.mcda_weights.location;
         }
     }
 
