@@ -10,4 +10,15 @@ ipapico_enable = false
 ipapicom_enable = false
 
 [ips_config]
+peer_file_path = "testdata/peers.json"
+geolocation = "PreferCloser"
+geolocation_minmax_distance_km = 1000
+change_at_least = 1
+change_no_more = 2
 
+[ips_config.mcda_weights]
+location = 0.3
+degree = 0.25
+eigenvector = 0.1
+betweenness = 0.25
+closeness = 0.1

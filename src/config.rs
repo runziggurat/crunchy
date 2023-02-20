@@ -40,9 +40,46 @@ pub struct GeoIPConfiguration {
     pub ipapicom_api_key: Option<String>,
 }
 
+/// Multi-criteria analysis weights
+#[derive(Debug, Clone, Deserialize)]
+pub struct MultiCriteriaAnalysisWeights {
+    /// Weight (importance) of the location factor
+    pub location: f64,
+    /// Weight (importance) of the degree factor
+    pub degree: f64,
+    /// Weight (importance) of the eigenvector factor
+    pub eigenvector: f64,
+    /// Weight (importance) of the betweenness factor
+    pub betweenness: f64,
+    /// Weight (importance) of the closeness factor
+    pub closeness: f64,
+}
+
+/// GeoLocationMode enum
+#[derive(Debug, PartialEq, Clone, Deserialize)]
+pub enum GeoLocationMode {
+    Off,
+    PreferCloser,
+    PreferDistant,
+}
+
 /// Configuration for Intelligent Peer Sharing module
-#[derive(Default, Debug, Clone, Deserialize)]
-pub struct IPSConfiguration {} //TODO(asmie): implement with IPS
+#[derive(Debug, Clone, Deserialize)]
+pub struct IPSConfiguration {
+    /// Path where peer list file will be written
+    pub peer_file_path: Option<PathBuf>,
+    /// Indicates if configuration should be taken into account and if so what should be
+    /// preferred (closer or distant).
+    pub geolocation: GeoLocationMode,
+    /// This is the max (or min) distance in km between peers
+    pub geolocation_minmax_distance_km: u32,
+    /// Indicates how many peers must be changed for each node
+    pub change_at_least: u32,
+    /// Indicates maximum peers should be changed for each node
+    pub change_no_more: u32,
+    /// Multi-criteria analysis weights
+    pub mcda_weights: MultiCriteriaAnalysisWeights,
+}
 
 impl CrunchyConfiguration {
     pub fn new(conf_path: &str) -> Result<CrunchyConfiguration> {
@@ -74,6 +111,31 @@ impl Default for GeoIPConfiguration {
             ipapico_api_key: Some(String::from("")),
             ipapicom_enable: true,
             ipapicom_api_key: Some(String::from("")),
+        }
+    }
+}
+
+impl Default for IPSConfiguration {
+    fn default() -> IPSConfiguration {
+        IPSConfiguration {
+            peer_file_path: Some(PathBuf::from("testdata/peers.json")),
+            geolocation: GeoLocationMode::PreferCloser,
+            geolocation_minmax_distance_km: 1000,
+            change_at_least: 1,
+            change_no_more: 2,
+            mcda_weights: MultiCriteriaAnalysisWeights::default(),
+        }
+    }
+}
+
+impl Default for MultiCriteriaAnalysisWeights {
+    fn default() -> MultiCriteriaAnalysisWeights {
+        MultiCriteriaAnalysisWeights {
+            location: 0.3,
+            degree: 0.25,
+            eigenvector: 0.1,
+            betweenness: 0.25,
+            closeness: 0.1,
         }
     }
 }

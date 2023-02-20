@@ -1,18 +1,24 @@
 mod config;
 mod geoip_cache;
+mod ips;
 mod nodes;
-use clap::Parser;
-
-use crate::geoip_cache::GeoIPCache;
 
 use std::{fs, path::PathBuf, time::Instant};
 
-use crate::config::CrunchyConfiguration;
-use crate::nodes::{create_nodes, Node};
+use clap::Parser;
 use serde::{Deserialize, Serialize};
 use ziggurat_core_crawler::summary::NetworkSummary;
-use ziggurat_core_geoip::providers::ip2loc::Ip2LocationService;
-use ziggurat_core_geoip::providers::ipgeoloc::{BackendProvider, IpGeolocateService};
+use ziggurat_core_geoip::providers::{
+    ip2loc::Ip2LocationService,
+    ipgeoloc::{BackendProvider, IpGeolocateService},
+};
+
+use crate::{
+    config::CrunchyConfiguration,
+    geoip_cache::GeoIPCache,
+    ips::Ips,
+    nodes::{create_nodes, Node},
+};
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct CrunchyState {
@@ -107,6 +113,12 @@ async fn write_state(config: &CrunchyConfiguration) {
     // TODO(asmie): better error handling - after refactorization of this function
     geo_cache.save().await.expect("could not save geoip cache");
 
+    let mut ips = Ips::new(config.ips_config.clone());
+    let ips_peers = ips.generate(&state, &response.result.agraph).await;
+
+    let peerlist = serde_json::to_string(&ips_peers).unwrap();
+    fs::write(config.ips_config.peer_file_path.as_ref().unwrap(), peerlist).unwrap();
+
     let joutput = serde_json::to_string(&state).unwrap();
     fs::write(config.state_file_path.as_ref().unwrap(), joutput).unwrap();
 }
@@ -131,6 +143,9 @@ async fn main() {
     }
     if let Some(geocache_file) = arg_conf.geocache_file {
         configuration.geoip_config.geocache_file_path = geocache_file;
+    }
+    if arg_conf.ips_file.is_some() {
+        configuration.ips_config.peer_file_path = arg_conf.ips_file;
     }
 
     if !configuration.input_file_path.as_ref().unwrap().is_file() {
@@ -163,6 +178,9 @@ pub struct ArgConfiguration {
     /// Configuration file path (if none defaults will be assumed)
     #[clap(short, long, value_parser)]
     pub config_file: Option<PathBuf>,
+    /// Intelligent Peer Sharing output file path (overrides output from config file)
+    #[clap(short = 'p', long, value_parser)]
+    pub ips_file: Option<PathBuf>,
 }
 
 #[cfg(test)]
