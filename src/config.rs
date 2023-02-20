@@ -55,18 +55,23 @@ pub struct MultiCriteriaAnalysisWeights {
     pub closeness: f64,
 }
 
+/// GeoLocationMode enum
+#[derive(Debug, PartialEq, Clone, Deserialize)]
+pub enum GeoLocationMode {
+    Off,
+    PreferCloser,
+    PreferDistant,
+}
+
 /// Configuration for Intelligent Peer Sharing module
 #[derive(Debug, Clone, Deserialize)]
 pub struct IPSConfiguration {
     /// Path where peer list file will be written
     pub peer_file_path: Option<PathBuf>,
-    /// Indicates if configuration should be taken into account
-    pub use_geolocation: bool,
-    /// True means we should prefer closer peers, false means we should prefer farther peers
-    pub use_closer_geolocation: bool,
-    /// If pref_location_closer is true, this is the maximum distance in kilometers we should prefer
-    /// closer peers. If pref_location_closer is false, this is the minimum distance in kilometers we
-    /// should prefer farther peers.
+    /// Indicates if configuration should be taken into account and if so what should be
+    /// preferred (closer or distant).
+    pub geolocation: GeoLocationMode,
+    /// This is the max (or min) distance in km between peers
     pub geolocation_minmax_distance_km: u32,
     /// Indicates how many peers must be changed for each node
     pub change_at_least: u32,
@@ -114,8 +119,7 @@ impl Default for IPSConfiguration {
     fn default() -> IPSConfiguration {
         IPSConfiguration {
             peer_file_path: Some(PathBuf::from("testdata/peers.json")),
-            use_geolocation: true,
-            use_closer_geolocation: true,
+            geolocation: GeoLocationMode::PreferCloser,
             geolocation_minmax_distance_km: 1000,
             change_at_least: 1,
             change_no_more: 2,

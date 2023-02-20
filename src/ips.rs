@@ -23,7 +23,10 @@ use spectre::{
     graph::{AGraph, Graph},
 };
 
-use crate::{config::IPSConfiguration, CrunchyState, Node};
+use crate::{
+    config::{GeoLocationMode, IPSConfiguration},
+    CrunchyState, Node,
+};
 
 /// Intelligent Peer Sharing (IPS) module structure
 #[derive(Default, Clone)]
@@ -153,7 +156,7 @@ impl Ips {
             // 1 - update ranks by location for specified node
             // This need to be done every time as location ranking will change for differently
             // located nodes.
-            if self.config.use_geolocation {
+            if self.config.geolocation != GeoLocationMode::Off {
                 self.update_rating_by_location(node, &state.nodes, &mut peer_ratings);
             }
 
@@ -206,14 +209,8 @@ impl Ips {
             curr_peer_ratings.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap());
 
             // 4 - Choose peers to delete from peerlist (based on ranking)
-            while peers_to_delete_count > 0 {
-                // Remove peers with lowest rating
-                if let Some(peer_to_delete) = curr_peer_ratings.pop() {
-                    peer_list_entry.list.retain(|x| x != &peer_to_delete.0);
-                    peers_to_delete_count -= 1;
-                } else {
-                    break;
-                }
+            while peers_to_delete_count > 0 && curr_peer_ratings.pop().is_some() {
+                peers_to_delete_count -= 1;
             }
 
             // 5 - Find peers to add from selected peers (based on rating)
@@ -249,6 +246,7 @@ impl Ips {
             // Do not compute factors one more time after every single peerlist addition. At least
             // for now, when computing factors is very expensive (especially betweenness and closeness).
             // Re-calculating it after each node for whole graph would take too long.
+            // TODO(asmie): recalculate some factors (like islands) after each node to check if graph is still connected
 
             peer_list.push(peer_list_entry);
         }
@@ -276,7 +274,6 @@ impl Ips {
             .unwrap_or(Location::new(0.0, 0.0));
 
         for (node_idx, node) in nodes.iter().enumerate() {
-            let mut rating = 0.0;
             if let Some(geo_info) = &node.geolocation {
                 let location = Location::new(
                     geo_info.latitude.unwrap_or_default(),
@@ -287,22 +284,22 @@ impl Ips {
 
                 // Map distance to some levels of rating - now they are taken arbitrarily but
                 // they should be somehow related to the distance.
-                if self.config.use_closer_geolocation {
+                let rating = if self.config.geolocation == GeoLocationMode::PreferCloser {
                     match distance {
-                        _ if distance < minmax_distance_m => rating = NORMALIZE_TO_VALUE,
-                        _ if distance < 2.0 * minmax_distance_m => rating = NORMALIZE_2_3,
-                        _ if distance < 3.0 * minmax_distance_m => rating = NORMALIZE_1_3,
-                        _ => rating = 0.0,
+                        _ if distance < minmax_distance_m => NORMALIZE_TO_VALUE,
+                        _ if distance < 2.0 * minmax_distance_m => NORMALIZE_2_3,
+                        _ if distance < 3.0 * minmax_distance_m => NORMALIZE_1_3,
+                        _ => 0.0,
                     }
                 } else {
                     match distance {
-                        _ if distance < 0.5 * minmax_distance_m => rating = 0.0,
-                        _ if distance < minmax_distance_m => rating = NORMALIZE_HALF,
-                        _ => rating = NORMALIZE_TO_VALUE,
+                        _ if distance < 0.5 * minmax_distance_m => 0.0,
+                        _ if distance < minmax_distance_m => NORMALIZE_HALF,
+                        _ => NORMALIZE_TO_VALUE,
                     }
-                }
+                };
+                ratings[node_idx].2 += rating * self.config.mcda_weights.location;
             }
-            ratings[node_idx].2 += rating * self.config.mcda_weights.location;
         }
     }
 
