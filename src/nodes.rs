@@ -37,12 +37,11 @@ fn hash_geo_location(latitude: f64, longitude: f64) -> String {
 pub fn set_cell_heights(nodes: &mut Vec<Node>, cell_stats: &mut HashMap<String, u32>) {
     for node in nodes {
         if let Some(GeoInfo {
-            latitude: Some(latitude),
-            longitude: Some(longitude),
+            location: Some(location),
             ..
         }) = &node.geolocation
         {
-            let geostr = hash_geo_location(*latitude, *longitude);
+            let geostr = hash_geo_location(location.latitude, location.longitude);
             if let Some(count) = cell_stats.get(&geostr) {
                 node.cell_height = *count;
             }
@@ -59,12 +58,11 @@ pub fn get_cell_position(
     geolocation: &Option<GeoInfo>,
 ) -> u32 {
     if let Some(GeoInfo {
-        latitude: Some(latitude),
-        longitude: Some(longitude),
+        location: Some(location),
         ..
     }) = geolocation
     {
-        let geostr = hash_geo_location(*latitude, *longitude);
+        let geostr = hash_geo_location(location.latitude, location.longitude);
 
         return *cell_stats
             .entry(geostr)

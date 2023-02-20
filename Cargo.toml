@@ -10,13 +10,12 @@ readme = "Readme.md"
 [dependencies]
 anyhow = "1.0"
 clap = { version = "4.0.29", features = ["derive"] }
-geoutils = "0.5.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 spectre = "0.5.2"
 toml = "0.7.0"
-ziggurat-core-crawler = { git = "https://github.com/runziggurat/ziggurat-core", rev = "508ddb7" }
-ziggurat-core-geoip = { git = "https://github.com/runziggurat/ziggurat-core", rev = "508ddb7" }
+ziggurat-core-crawler = { git = "https://github.com/runziggurat/ziggurat-core", rev = "05dd9f0" }
+ziggurat-core-geoip = { git = "https://github.com/runziggurat/ziggurat-core", rev = "05dd9f0" }
 
 [dependencies.tokio]
 version = "1.24"
