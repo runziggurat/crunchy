@@ -274,32 +274,35 @@ impl Ips {
             .unwrap_or(Location::new(0.0, 0.0));
 
         for (node_idx, node) in nodes.iter().enumerate() {
-            if let Some(geo_info) = &node.geolocation {
-                let location = Location::new(
-                    geo_info.latitude.unwrap_or_default(),
-                    geo_info.longitude.unwrap_or_default(),
-                );
-                let distance = selected_location.distance_to(&location).unwrap().meters();
-                let minmax_distance_m = self.config.geolocation_minmax_distance_km as f64 * 1000.0;
-
-                // Map distance to some levels of rating - now they are taken arbitrarily but
-                // they should be somehow related to the distance.
-                let rating = if self.config.geolocation == GeoLocationMode::PreferCloser {
-                    match distance {
-                        _ if distance < minmax_distance_m => NORMALIZE_TO_VALUE,
-                        _ if distance < 2.0 * minmax_distance_m => NORMALIZE_2_3,
-                        _ if distance < 3.0 * minmax_distance_m => NORMALIZE_1_3,
-                        _ => 0.0,
-                    }
-                } else {
-                    match distance {
-                        _ if distance < 0.5 * minmax_distance_m => 0.0,
-                        _ if distance < minmax_distance_m => NORMALIZE_HALF,
-                        _ => NORMALIZE_TO_VALUE,
-                    }
-                };
-                ratings[node_idx].2 += rating * self.config.mcda_weights.location;
+            if node.geolocation.is_none() {
+                continue;
             }
+
+            let geo_info = node.geolocation.as_ref().unwrap();
+            let location = Location::new(
+                geo_info.latitude.unwrap_or_default(),
+                geo_info.longitude.unwrap_or_default(),
+            );
+            let distance = selected_location.distance_to(&location).unwrap().meters();
+            let minmax_distance_m = self.config.geolocation_minmax_distance_km as f64 * 1000.0;
+
+            // Map distance to some levels of rating - now they are taken arbitrarily but
+            // they should be somehow related to the distance.
+            let rating = if self.config.geolocation == GeoLocationMode::PreferCloser {
+                match distance {
+                    _ if distance < minmax_distance_m => NORMALIZE_TO_VALUE,
+                    _ if distance < 2.0 * minmax_distance_m => NORMALIZE_2_3,
+                    _ if distance < 3.0 * minmax_distance_m => NORMALIZE_1_3,
+                    _ => 0.0,
+                }
+            } else {
+                match distance {
+                    _ if distance < 0.5 * minmax_distance_m => 0.0,
+                    _ if distance < minmax_distance_m => NORMALIZE_HALF,
+                    _ => NORMALIZE_TO_VALUE,
+                }
+            };
+            ratings[node_idx].2 += rating * self.config.mcda_weights.location;
         }
     }
 
