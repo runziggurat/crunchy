@@ -178,7 +178,7 @@ impl Ips {
             let desired_degree = ((degree_avg + degree as f64) / 2.0).round() as u32;
 
             // 3 - Calculate how many peers to add or delete from peerlist
-            let peers_to_delete_count = if desired_degree < degree {
+            let mut peers_to_delete_count = if desired_degree < degree {
                 degree.saturating_sub(desired_degree)
             } else {
                 // Check if config forces to change peerlist even if we have good degree.
@@ -202,17 +202,17 @@ impl Ips {
                 peers_to_add_count = self.config.change_no_more;
             }
 
-            // 4 - Choose peers to delete from peerlist (based on ranking)
-            if peers_to_delete_count > 0 {
-                // Sort peers by rating (highest first)
-                curr_peer_ratings.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap());
+            // Sort peers by rating (highest first)
+            curr_peer_ratings.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap());
 
+            // 4 - Choose peers to delete from peerlist (based on ranking)
+            while peers_to_delete_count > 0 {
                 // Remove peers with lowest rating
-                for _ in 0..peers_to_delete_count {
-                    let peer_to_delete = curr_peer_ratings.pop();
-                    if let Some(peer_to_delete) = peer_to_delete {
-                        peer_list_entry.list.retain(|x| x != &peer_to_delete.0);
-                    }
+                if let Some(peer_to_delete) = curr_peer_ratings.pop() {
+                    peer_list_entry.list.retain(|x| x != &peer_to_delete.0);
+                    peers_to_delete_count -= 1;
+                } else {
+                    break;
                 }
             }
 
