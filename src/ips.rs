@@ -24,6 +24,7 @@ use spectre::{
 
 use crate::{
     config::{GeoLocationMode, IPSConfiguration},
+    graph_utils::find_bridges,
     CrunchyState, Node,
 };
 
@@ -128,6 +129,9 @@ impl Ips {
             .collect::<Vec<f64>>();
         self.closeness_factors = NormalizationFactors::determine(closeness);
 
+        // Detect possible bridges
+        let bridges = find_bridges(&state.nodes, self.config.bridge_threshold_adjustment);
+
         // Node rating can be split into two parts: constant and variable depending on the node's
         // location. Now we can compute each node's constant rating based on some graph params.
         // Vector contains IpAddr, node index (from the state.nodes) and rating. We need index just
@@ -197,6 +201,11 @@ impl Ips {
                 self.config.change_at_least
             };
 
+            // Limit number of changes to config value
+            if peers_to_delete_count > self.config.change_no_more {
+                peers_to_delete_count = self.config.change_no_more;
+            }
+
             // Calculating how many peers should be added. If we have more peers than desired degree
             // we will add at least config.change_at_least peers.
             let mut peers_to_add_count = if desired_degree > degree {
@@ -219,7 +228,15 @@ impl Ips {
             curr_peer_ratings.sort_by(|a, b| b.rating.partial_cmp(&a.rating).unwrap());
 
             // 4 - Choose peers to delete from peerlist (based on ranking)
-            while peers_to_delete_count > 0 && curr_peer_ratings.pop().is_some() {
+            while peers_to_delete_count > 0 {
+                if let Some(peer) = curr_peer_ratings.pop() {
+                    // Check if we're not deleting a bridge
+                    if bridges.contains_key(&peer.index) && bridges[&peer.index].contains(&node_idx)
+                    {
+                        continue;
+                    }
+                    peer_list_entry.list.retain(|x| x != &peer.ip);
+                }
                 peers_to_delete_count -= 1;
             }
 

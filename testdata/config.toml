@@ -15,6 +15,7 @@ geolocation = "PreferCloser"
 geolocation_minmax_distance_km = 1000
 change_at_least = 1
 change_no_more = 2
+bridge_threshold_adjustment = 1.25
 
 [ips_config.mcda_weights]
 location = 0.3

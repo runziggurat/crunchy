@@ -77,6 +77,8 @@ pub struct IPSConfiguration {
     pub change_at_least: u32,
     /// Indicates maximum peers should be changed for each node
     pub change_no_more: u32,
+    /// Indicates adjustment factor for bridge detection
+    pub bridge_threshold_adjustment: f64,
     /// Multi-criteria analysis weights
     pub mcda_weights: MultiCriteriaAnalysisWeights,
 }
@@ -124,6 +126,7 @@ impl Default for IPSConfiguration {
             change_at_least: 1,
             change_no_more: 2,
             mcda_weights: MultiCriteriaAnalysisWeights::default(),
+            bridge_threshold_adjustment: 1.25,
         }
     }
 }
