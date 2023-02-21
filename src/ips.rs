@@ -277,8 +277,8 @@ impl Ips {
         }
 
         let selected_location =
-            if let Some(location) = selected_node.geolocation.as_ref().unwrap().location {
-                location
+            if let Some(coordinates) = selected_node.geolocation.as_ref().unwrap().coordinates {
+                coordinates
             } else {
                 return;
             };
@@ -289,11 +289,11 @@ impl Ips {
             }
 
             let geo_info = node.geolocation.as_ref().unwrap();
-            if geo_info.location.is_none() {
+            if geo_info.coordinates.is_none() {
                 continue;
             }
 
-            let distance = selected_location.distance_to(geo_info.location.unwrap());
+            let distance = selected_location.distance_to(geo_info.coordinates.unwrap());
             let minmax_distance_m = self.config.geolocation_minmax_distance_km as f64 * 1000.0;
 
             // Map distance to some levels of rating - now they are taken arbitrarily but
