@@ -21,11 +21,17 @@ use crate::{utils::median, Node};
 /// with similar betweenness centrality taking top 20% would result in finding fake bridges).
 pub fn find_bridges(nodes: &[Node], threshold_adjustment: f64) -> HashMap<usize, HashSet<usize>> {
     let mut bridges = HashMap::new();
+
+    // If there are less than 2 nodes there is no point in finding bridges.
+    if nodes.len() < 2 {
+        return bridges;
+    }
+
     let mut betweenness_list = nodes.iter().map(|n| n.betweenness).collect::<Vec<f64>>();
 
     betweenness_list.sort_by(|a, b| a.partial_cmp(b).unwrap());
 
-    let betweenness_median = median(&betweenness_list);
+    let betweenness_median = median(&betweenness_list).unwrap(); // Safe to uwrap as we checked if there are at least 2 nodes.
     let betweenness_threshold = betweenness_median * threshold_adjustment;
 
     for (node_idx, node) in nodes.iter().enumerate() {
