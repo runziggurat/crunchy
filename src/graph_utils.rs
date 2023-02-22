@@ -40,7 +40,7 @@ pub fn find_bridges(nodes: &[Node], threshold_adjustment: f64) -> HashMap<usize,
         }
 
         for peer_idx in &node.connections {
-            if nodes[*peer_idx].betweenness < betweenness_threshold || node_idx == *peer_idx {
+            if nodes[*peer_idx].betweenness <= betweenness_threshold {
                 continue;
             }
 
