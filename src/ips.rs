@@ -17,14 +17,11 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use spectre::{
-    edge::Edge,
-    graph::{AGraph, Graph},
-};
+use spectre::graph::AGraph;
 
 use crate::{
     config::{GeoLocationMode, IPSConfiguration},
-    graph_utils::find_bridges,
+    graph_utils::{construct_graph, find_bridges},
     CrunchyState, Node,
 };
 
@@ -63,7 +60,7 @@ const NORMALIZE_HALF: f64 = NORMALIZE_TO_VALUE / 2.0;
 const NORMALIZE_2_3: f64 = NORMALIZE_TO_VALUE * 2.0 / 3.0;
 const NORMALIZE_1_3: f64 = NORMALIZE_TO_VALUE * 1.0 / 3.0;
 
-const ERR_PARSE_IP: &str = "failed to parse IP address";
+pub const ERR_PARSE_IP: &str = "failed to parse IP address";
 const ERR_GET_DEGREE: &str = "failed to get degree";
 const ERR_GET_EIGENVECTOR: &str = "failed to get eigenvector";
 
@@ -93,7 +90,7 @@ impl Ips {
         // Using agraph gives us certainity that we are using the same graph as the crawler and
         // there are only good nodes there (this is critical assumption!). Second assumption is
         // that agraph node indexes are the same as in the state.nodes vector.
-        let mut graph = self.construct_graph(&state.nodes, agraph);
+        let mut graph = construct_graph(&state.nodes);
 
         // 0 - Detect islands
         // To reconsider if islands should be merged prior to any other computations or not.
@@ -333,21 +330,6 @@ impl Ips {
         }
     }
 
-    fn construct_graph(&self, nodes: &[Node], agraph: &AGraph) -> Graph<IpAddr> {
-        let mut graph = Graph::new();
-
-        for i in 0..agraph.len() {
-            for j in 0..agraph[i].len() {
-                let edge = Edge::new(
-                    IpAddr::from_str(nodes[i].ip.as_str()).expect(ERR_PARSE_IP),
-                    IpAddr::from_str(nodes[j].ip.as_str()).expect(ERR_PARSE_IP),
-                );
-                graph.insert(edge);
-            }
-        }
-        graph
-    }
-
     fn degree_centrality_avg(&self, degrees: &HashMap<IpAddr, u32>) -> f64 {
         (degrees.iter().fold(0, |acc, (_, &degree)| acc + degree) as f64) / degrees.len() as f64
     }
@@ -451,7 +433,7 @@ impl NormalizationFactors {
 
 #[cfg(test)]
 mod tests {
-    use spectre::edge::Edge;
+    use spectre::{edge::Edge, graph::Graph};
 
     use super::*;
 

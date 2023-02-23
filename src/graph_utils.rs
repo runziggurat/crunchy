@@ -1,6 +1,12 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    net::IpAddr,
+    str::FromStr,
+};
 
-use crate::{utils::median, Node};
+use spectre::{edge::Edge, graph::Graph};
+
+use crate::{ips::ERR_PARSE_IP, utils::median, Node};
 
 /// Find bridges in graph.
 /// Bridges are edges that if removed disconnects the graph but here we try to find something
@@ -64,9 +70,60 @@ pub fn find_bridges(nodes: &[Node], threshold_adjustment: f64) -> HashMap<usize,
     bridges
 }
 
+pub fn construct_graph(nodes: &[Node]) -> Graph<IpAddr> {
+    let mut graph = Graph::new();
+
+    for i in 0..nodes.len() {
+        for j in 0..nodes[i].connections.len() {
+            let edge = Edge::new(
+                IpAddr::from_str(nodes[i].ip.as_str()).expect(ERR_PARSE_IP),
+                IpAddr::from_str(nodes[nodes[i].connections[j]].ip.as_str()).expect(ERR_PARSE_IP),
+            );
+            graph.insert(edge);
+        }
+    }
+    graph
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn construct_graph_test() {
+        let nodes = vec![
+            Node {
+                ip: "0.0.0.0".to_string(),
+                connections: vec![1, 2],
+                ..Default::default()
+            },
+            Node {
+                ip: "1.0.0.0".to_string(),
+                connections: vec![0, 2],
+                ..Default::default()
+            },
+            Node {
+                ip: "2.0.0.0".to_string(),
+                connections: vec![0, 1],
+                ..Default::default()
+            },
+        ];
+
+        let mut graph = construct_graph(&nodes);
+        let degrees = graph.degree_centrality();
+        assert_eq!(
+            degrees.get(&IpAddr::from_str("0.0.0.0").unwrap()).unwrap(),
+            &2
+        );
+        assert_eq!(
+            degrees.get(&IpAddr::from_str("1.0.0.0").unwrap()).unwrap(),
+            &2
+        );
+        assert_eq!(
+            degrees.get(&IpAddr::from_str("2.0.0.0").unwrap()).unwrap(),
+            &2
+        );
+    }
 
     #[test]
     fn find_bridges_test() {
