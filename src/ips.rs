@@ -17,7 +17,6 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use spectre::graph::AGraph;
 
 use crate::{
     config::{GeoLocationMode, IPSConfiguration},
@@ -82,21 +81,17 @@ impl Ips {
     /// It needs state and agraph to be passed as parameters which need to be correlated with
     /// the crawler's state and agraph (and with each other), so the indexes saved in the
     /// agraph are the same as the positions of the nodes in the state.nodes.
-    pub async fn generate(&mut self, state: &CrunchyState, agraph: &AGraph) -> Vec<Peer> {
+    pub async fn generate(&mut self, state: &CrunchyState) -> Vec<Peer> {
         let mut peer_list = Vec::new();
 
-        // Reconstruct graph from the agraph - we need to do this because we need all the
-        // measures provided by spectre's graph implementation.
-        // Using agraph gives us certainity that we are using the same graph as the crawler and
-        // there are only good nodes there (this is critical assumption!). Second assumption is
-        // that agraph node indexes are the same as in the state.nodes vector.
+        // Reconstruct graph from the state.nodes vector
         let mut graph = construct_graph(&state.nodes);
 
         // 0 - Detect islands
         // To reconsider if islands should be merged prior to any other computations or not.
         // IMHO, if there are islands they can influence on the results of the computations.
         // TODO(asmie): Merging islands is not implemented yet.
-        let _islands = self.detect_islands(agraph);
+        let _islands = self.detect_islands(&state.nodes);
 
         // Now take the current params
         let degrees = graph.degree_centrality();
@@ -169,7 +164,7 @@ impl Ips {
             }
 
             // Load peerlist with current connections (we don't want to change everything)
-            for peer in &agraph[node_idx] {
+            for peer in &state.nodes[node_idx].connections {
                 peer_list_entry
                     .list
                     .push(IpAddr::from_str(state.nodes[*peer].ip.as_str()).expect(ERR_PARSE_IP));
@@ -366,11 +361,11 @@ impl Ips {
     // Very simple algorithm to detect islands.
     // Take first vertex and do BFS to find all connected vertices. If there are any unvisited vertices
     // create new island and do BFS one more time. Repeat until all vertices are visited.
-    fn detect_islands(&self, agraph: &AGraph) -> Vec<HashSet<usize>> {
+    fn detect_islands(&self, nodes: &[Node]) -> Vec<HashSet<usize>> {
         let mut islands = Vec::new();
-        let mut visited = vec![false; agraph.len()];
+        let mut visited = vec![false; nodes.len()];
 
-        for i in 0..agraph.len() {
+        for i in 0..nodes.len() {
             if visited[i] {
                 continue;
             }
@@ -388,9 +383,9 @@ impl Ips {
 
                 visited[node_idx] = true;
 
-                for j in 0..agraph[node_idx].len() {
-                    if !visited[agraph[node_idx][j]] {
-                        queue.push_back(agraph[node_idx][j]);
+                for j in 0..nodes[node_idx].connections.len() {
+                    if !visited[nodes[node_idx].connections[j]] {
+                        queue.push_back(nodes[node_idx].connections[j]);
                     }
                 }
             }
@@ -492,11 +487,12 @@ mod tests {
                     IpAddr::from_str(nodes[i].ip.as_str()).expect(ERR_PARSE_IP),
                     IpAddr::from_str(nodes[j].ip.as_str()).expect(ERR_PARSE_IP),
                 ));
+                nodes[i].connections.push(j);
+                nodes[j].connections.push(i);
             }
         }
 
-        let agraph = graph.create_agraph(&ipaddrs);
-        let islands = ips.detect_islands(&agraph);
+        let islands = ips.detect_islands(&nodes);
 
         assert_eq!(islands.len(), 1);
     }
@@ -531,11 +527,13 @@ mod tests {
                     IpAddr::from_str(nodes[i].ip.as_str()).expect(ERR_PARSE_IP),
                     IpAddr::from_str(nodes[j].ip.as_str()).expect(ERR_PARSE_IP),
                 ));
+
+                nodes[i].connections.push(j);
+                nodes[j].connections.push(i);
             }
         }
 
-        let agraph = graph.create_agraph(&ipaddrs);
-        let islands = ips.detect_islands(&agraph);
+        let islands = ips.detect_islands(&nodes);
 
         assert_eq!(islands.len(), nodes.len());
     }
