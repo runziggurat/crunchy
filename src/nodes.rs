@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use spectre::graph::{AGraph, Graph};
+use spectre::{edge::Edge, graph::Graph};
 use ziggurat_core_geoip::geoip::GeoInfo;
 
 use crate::geoip_cache::GeoIPCache;
@@ -73,18 +73,25 @@ pub fn get_cell_position(
 }
 
 pub async fn create_nodes(
-    agraph: &AGraph,
+    indices: &Vec<Vec<usize>>,
     node_ips: &[String],
     geo_cache: &GeoIPCache,
 ) -> Vec<Node> {
-    let graph: Graph<usize> = Graph::new();
-    // TODO(asmie/kylegranger): make this an associated function for Graph.
-    // it does not use the Graph per se
-    let (betweenness, closeness) = graph.compute_betweenness_and_closeness(agraph);
-    let mut nodes = Vec::with_capacity(agraph.len());
+    let mut graph = Graph::new();
+    for (n, node) in indices.iter().enumerate() {
+        for connection in node {
+            if *connection > n {
+                graph.insert(Edge::new(n, *connection));
+            }
+        }
+    }
+
+    let betweenness = graph.betweenness_centrality();
+    let closeness = graph.closeness_centrality();
+    let mut nodes = Vec::with_capacity(indices.len());
     let mut cell_stats: HashMap<String, u32> = HashMap::new();
 
-    for i in 0..agraph.len() {
+    for i in 0..indices.len() {
         let geolocation = geo_cache
             .lookup(node_ips[i].parse().expect("malformed IP address"))
             .await;
@@ -92,11 +99,15 @@ pub async fn create_nodes(
 
         let node: Node = Node {
             ip: node_ips[i].clone(),
-            betweenness: betweenness[i],
-            closeness: closeness[i],
+            betweenness: *betweenness
+                .get(&i)
+                .expect("could not find betweenness value for index}"),
+            closeness: *closeness
+                .get(&i)
+                .expect("could not find closeness value for index"),
             cell_position,
             cell_height: 0,
-            connections: agraph[i].clone(),
+            connections: indices[i].clone(),
             geolocation,
         };
         nodes.push(node);
