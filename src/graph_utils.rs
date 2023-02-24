@@ -73,11 +73,12 @@ pub fn find_bridges(nodes: &[Node], threshold_adjustment: f64) -> HashMap<usize,
 pub fn construct_graph(nodes: &[Node]) -> Graph<IpAddr> {
     let mut graph = Graph::new();
 
-    for i in 0..nodes.len() {
-        for j in 0..nodes[i].connections.len() {
+    for node in nodes {
+        let node_ip = IpAddr::from_str(node.ip.as_str()).expect(ERR_PARSE_IP);
+        for i in &node.connections {
             let edge = Edge::new(
-                IpAddr::from_str(nodes[i].ip.as_str()).expect(ERR_PARSE_IP),
-                IpAddr::from_str(nodes[nodes[i].connections[j]].ip.as_str()).expect(ERR_PARSE_IP),
+                node_ip,
+                IpAddr::from_str(nodes[*i].ip.as_str()).expect(ERR_PARSE_IP),
             );
             graph.insert(edge);
         }

@@ -79,11 +79,11 @@ pub async fn create_nodes(
 ) -> Vec<Node> {
     let mut graph = Graph::new();
     for (n, node) in indices.iter().enumerate() {
-        for connection in node {
-            if *connection > n {
+        node.iter()
+            .filter(|&connection| *connection > n)
+            .for_each(|connection| {
                 graph.insert(Edge::new(n, *connection));
-            }
-        }
+            });
     }
 
     let betweenness = graph.betweenness_centrality();
