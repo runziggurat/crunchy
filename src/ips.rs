@@ -92,8 +92,11 @@ impl Ips {
         let initial_state = self.generate_state(&state.nodes);
 
         // This is the working set of factors.
-        //TODO(asmie): add .clone() to the initial_state when it will be used
+        //TODO(asmie): add .clone() to the initial_state when it will be used and remove creating new vector
+        // Now we're creating a new vector because MCDA code operates not on state but on the peerlist
+        // and if we left here peerlist from the state, it would be doubled by MCDA.
         let mut working_state = initial_state;
+        working_state.peer_list = Vec::new();
 
         // Phase 1: Security checks
         //TODO(asmie): Detecting islands, bridges and hot nodes. Checking if there are any nodes that upon removal
@@ -163,6 +166,9 @@ impl Ips {
             let desired_degree = ((degree_avg + degree as f64) / 2.0).round() as u32;
 
             // 3 - Calculate how many peers to add or delete from peerlist
+            //TODO(asmie): when graph has been visualized it occured that it has many nodes with
+            // self connections. This is not good as it takes place in peerlist and gives no
+            // benefit.
             let mut peers_to_delete_count = if desired_degree < degree {
                 degree.saturating_sub(desired_degree)
             } else {
