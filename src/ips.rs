@@ -28,10 +28,19 @@ use crate::{
 #[derive(Default, Clone)]
 pub struct Ips {
     config: IPSConfiguration,
-    degree_factors: NormalizationFactors,
-    betweenness_factors: NormalizationFactors,
-    closeness_factors: NormalizationFactors,
-    eigenvector_factors: NormalizationFactors,
+}
+
+/// State structure containing all the information about the graph and nodes at some point
+#[derive(Default, Clone)]
+struct IpsState {
+    pub nodes: Vec<Node>,
+    pub peer_list: Vec<Peer>,
+    pub degrees: HashMap<IpAddr, u32>,
+    pub eigenvalues: HashMap<IpAddr, f64>,
+    pub degree_factors: NormalizationFactors,
+    pub betweenness_factors: NormalizationFactors,
+    pub closeness_factors: NormalizationFactors,
+    pub eigenvector_factors: NormalizationFactors,
 }
 
 /// Peer list structure containing peer list for each node
@@ -63,7 +72,7 @@ pub const ERR_PARSE_IP: &str = "failed to parse IP address";
 const ERR_GET_DEGREE: &str = "failed to get degree";
 const ERR_GET_EIGENVECTOR: &str = "failed to get eigenvector";
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Copy)]
 struct NormalizationFactors {
     min: f64,
     max: f64,
@@ -71,10 +80,7 @@ struct NormalizationFactors {
 
 impl Ips {
     pub fn new(config: IPSConfiguration) -> Ips {
-        Ips {
-            config,
-            ..Default::default()
-        }
+        Ips { config }
     }
 
     /// Generate peer list - main function with The Algorithm
@@ -82,68 +88,41 @@ impl Ips {
     /// the crawler's state and agraph (and with each other), so the indexes saved in the
     /// agraph are the same as the positions of the nodes in the state.nodes.
     pub async fn generate(&mut self, state: &CrunchyState) -> Vec<Peer> {
-        let mut peer_list = Vec::new();
+        // Initial state will be used to compare the results of the computations
+        let initial_state = self.generate_state(&state.nodes);
 
-        // Reconstruct graph from the state.nodes vector
-        let mut graph = construct_graph(&state.nodes);
+        // This is the working set of factors.
+        //TODO(asmie): add .clone() to the initial_state when it will be used
+        let mut working_state = initial_state;
 
-        // 0 - Detect islands
+        // Phase 1: Security checks
+        //TODO(asmie): Detecting islands, bridges and hot nodes. Checking if there are any nodes that upon removal
+        // would cause the graph to be disconnected. If there are any, there is a need to create
+        // new connections between the possible islands.
+
+        // Detect islands
         // To reconsider if islands should be merged prior to any other computations or not.
         // IMHO, if there are islands they can influence on the results of the computations.
         // TODO(asmie): Merging islands is not implemented yet.
-        let _islands = self.detect_islands(&state.nodes);
+        let _islands = self.detect_islands(&working_state.nodes);
 
         // Now take the current params
-        let degrees = graph.degree_centrality();
-        let degree_avg = self.degree_centrality_avg(&degrees);
-        let eigenvalues = graph.eigenvalue_centrality();
-
-        // Determine factors used for normalization.
-        // Normalization step is needed to make sure that all the factors are in the same range and
-        // weights can be applied to them.
-        self.degree_factors =
-            NormalizationFactors::determine(&degrees.values().cloned().collect::<Vec<u32>>());
-
-        self.eigenvector_factors =
-            NormalizationFactors::determine(&eigenvalues.values().cloned().collect::<Vec<f64>>());
-
-        let betweenness = &state
-            .nodes
-            .iter()
-            .map(|n| n.betweenness)
-            .collect::<Vec<f64>>();
-        self.betweenness_factors = NormalizationFactors::determine(betweenness);
-
-        let closeness = &state
-            .nodes
-            .iter()
-            .map(|n| n.closeness)
-            .collect::<Vec<f64>>();
-        self.closeness_factors = NormalizationFactors::determine(closeness);
+        let degree_avg = self.degree_centrality_avg(&working_state.degrees);
 
         // Detect possible bridges
-        let bridges = find_bridges(&state.nodes, self.config.bridge_threshold_adjustment);
+        let bridges = find_bridges(
+            &working_state.nodes,
+            self.config.bridge_threshold_adjustment,
+        );
+
+        // Phase 2: Generate peer list using MCDA optimization.
 
         // Node rating can be split into two parts: constant and variable depending on the node's
         // location. Now we can compute each node's constant rating based on some graph params.
-        // Vector contains IpAddr, node index (from the state.nodes) and rating. We need index just
-        // to be able to easily get the node from nodes vector after sorting.
-        let mut const_factors = Vec::with_capacity(state.nodes.len());
-        for (idx, node) in state.nodes.iter().enumerate() {
-            let ip = IpAddr::from_str(node.ip.as_str()).expect(ERR_PARSE_IP);
-            const_factors.push(PeerEntry {
-                ip,
-                index: idx,
-                rating: self.rate_node(
-                    node,
-                    *degrees.get(&ip).expect(ERR_GET_DEGREE), // should be safe to unwrap here as degree hashmap is constructed from the same nodes as the state.nodes
-                    *eigenvalues.get(&ip).expect(ERR_GET_EIGENVECTOR), // should be safe to unwrap here as eigenvector hashmap is constructed from the same nodes as the state.nodes
-                ),
-            });
-        }
+        let const_factors = self.calculate_const_factors(&working_state);
 
         // Iterate over nodes to generate peerlist entry for each node
-        for (node_idx, node) in state.nodes.iter().enumerate() {
+        for (node_idx, node) in working_state.nodes.iter().enumerate() {
             let node_ip = IpAddr::from_str(node.ip.as_str()).expect(ERR_PARSE_IP);
 
             // Clone const factors for each node to be able to modify them
@@ -160,21 +139,21 @@ impl Ips {
             // This need to be done every time as location ranking will change for differently
             // located nodes.
             if self.config.geolocation != GeoLocationMode::Off {
-                self.update_rating_by_location(node, &state.nodes, &mut peer_ratings);
+                self.update_rating_by_location(node, &working_state.nodes, &mut peer_ratings);
             }
 
             // Load peerlist with current connections (we don't want to change everything)
-            for peer in &state.nodes[node_idx].connections {
-                peer_list_entry
-                    .list
-                    .push(IpAddr::from_str(state.nodes[*peer].ip.as_str()).expect(ERR_PARSE_IP));
+            for peer in &working_state.nodes[node_idx].connections {
+                peer_list_entry.list.push(
+                    IpAddr::from_str(working_state.nodes[*peer].ip.as_str()).expect(ERR_PARSE_IP),
+                );
 
                 // Remember current peer ratings
                 curr_peer_ratings.push(peer_ratings[*peer]);
             }
 
             // Get current node's degree for further computations
-            let degree = *degrees.get(&node_ip).expect(ERR_GET_DEGREE);
+            let degree = *working_state.degrees.get(&node_ip).expect(ERR_GET_DEGREE);
 
             // 2 - Calculate desired vertex degree
             // In the first iteration we will use degree average so all nodes should pursue to
@@ -251,9 +230,9 @@ impl Ips {
                 // betweenness factor - just to avoid creating "hot" nodes that have very high
                 // importance to the network which can be risky if such node goes down.
                 candidates.sort_by(|a, b| {
-                    state.nodes[a.index]
+                    working_state.nodes[a.index]
                         .betweenness
-                        .partial_cmp(&state.nodes[b.index].betweenness)
+                        .partial_cmp(&working_state.nodes[b.index].betweenness)
                         .unwrap()
                 });
 
@@ -261,18 +240,100 @@ impl Ips {
                     peer_list_entry.list.push(peer.ip);
                 }
             }
-
-            // Do not compute factors one more time after every single peerlist addition. At least
-            // for now, when computing factors is very expensive (especially betweenness and closeness).
-            // Re-calculating it after each node for whole graph would take too long.
-            // TODO(asmie): recalculate some factors (like islands) after each node to check if graph is still connected
-
-            peer_list.push(peer_list_entry);
+            working_state.peer_list.push(peer_list_entry);
         }
-        peer_list
+
+        // TODO(asmie): recalculate and compare factors to check if network is going better
+
+        working_state.peer_list
     }
 
     // Helper functions
+
+    /// Generate peerlist for given nodes based on their connections
+    fn generate_peerlist(&self, nodes: &[Node]) -> Vec<Peer> {
+        let mut peer_list = Vec::with_capacity(nodes.len());
+
+        for node in nodes {
+            peer_list.push(self.generate_peerlist_for_node(node, nodes));
+        }
+
+        peer_list
+    }
+
+    /// Generate peerlist for given node based on its connections
+    fn generate_peerlist_for_node(&self, node: &Node, nodes: &[Node]) -> Peer {
+        let mut peer_list_entry = Peer {
+            ip: IpAddr::from_str(node.ip.as_str()).expect(ERR_PARSE_IP),
+            list: Vec::with_capacity(node.connections.len()),
+        };
+
+        for peer in &node.connections {
+            peer_list_entry
+                .list
+                .push(IpAddr::from_str(nodes[*peer].ip.as_str()).expect(ERR_PARSE_IP));
+        }
+
+        peer_list_entry
+    }
+
+    /// Generate state for IPS
+    fn generate_state(&self, nodes: &[Node]) -> IpsState {
+        let mut ips_state = IpsState {
+            nodes: nodes.to_vec(),
+            ..Default::default()
+        };
+
+        let mut graph = construct_graph(nodes);
+        let betweenness = graph.betweenness_centrality();
+        let closeness = graph.closeness_centrality();
+
+        // Recalculate factors with new graph
+        for node in ips_state.nodes.iter_mut() {
+            let ip = IpAddr::from_str(&node.ip).unwrap();
+            node.betweenness = *betweenness.get(&ip).unwrap_or(&0.0);
+            node.closeness = *closeness.get(&ip).unwrap_or(&0.0);
+        }
+
+        ips_state.degrees = graph.degree_centrality();
+        ips_state.eigenvalues = graph.eigenvalue_centrality();
+
+        ips_state.degree_factors = NormalizationFactors::determine(
+            &ips_state.degrees.values().cloned().collect::<Vec<u32>>(),
+        );
+
+        ips_state.eigenvector_factors = NormalizationFactors::determine(
+            &ips_state
+                .eigenvalues
+                .values()
+                .cloned()
+                .collect::<Vec<f64>>(),
+        );
+
+        let betweenness = &nodes.iter().map(|n| n.betweenness).collect::<Vec<f64>>();
+        ips_state.betweenness_factors = NormalizationFactors::determine(betweenness);
+
+        let closeness = &nodes.iter().map(|n| n.closeness).collect::<Vec<f64>>();
+        ips_state.closeness_factors = NormalizationFactors::determine(closeness);
+
+        ips_state.peer_list = self.generate_peerlist(nodes);
+
+        ips_state
+    }
+
+    /// Calculates const factors for each node.
+    fn calculate_const_factors(&self, state: &IpsState) -> Vec<PeerEntry> {
+        let mut const_factors = Vec::with_capacity(state.nodes.len());
+        for (idx, node) in state.nodes.iter().enumerate() {
+            let ip = IpAddr::from_str(node.ip.as_str()).expect(ERR_PARSE_IP);
+            const_factors.push(PeerEntry {
+                ip,
+                index: idx,
+                rating: self.rate_node(node, state),
+            });
+        }
+        const_factors
+    }
 
     /// Update nodes rating based on location
     fn update_rating_by_location(
@@ -329,29 +390,33 @@ impl Ips {
         (degrees.iter().fold(0, |acc, (_, &degree)| acc + degree) as f64) / degrees.len() as f64
     }
 
-    fn rate_node(&self, node: &Node, degree: u32, eigenvalue: f64) -> f64 {
+    fn rate_node(&self, node: &Node, state: &IpsState) -> f64 {
         // Calculate rating for node (if min == max for normalization factors then rating is
         // not increased for that factor as lerp() returns 0.0).
         // Rating is a combination of the following factors:
         let mut rating = 0.0;
 
+        let ip = IpAddr::from_str(node.ip.as_str()).expect(ERR_PARSE_IP);
+        let degree = *state.degrees.get(&ip).expect(ERR_GET_DEGREE);
+        let eigenvalue = *state.eigenvalues.get(&ip).expect(ERR_GET_EIGENVECTOR);
+
         // 1. Degree
-        rating += self.degree_factors.scale(degree as f64)
+        rating += state.degree_factors.scale(degree as f64)
             * NORMALIZE_TO_VALUE
             * self.config.mcda_weights.degree;
 
         // 2. Betweenness
-        rating += self.betweenness_factors.scale(node.betweenness)
+        rating += state.betweenness_factors.scale(node.betweenness)
             * NORMALIZE_TO_VALUE
             * self.config.mcda_weights.betweenness;
 
         // 3. Closeness
-        rating += self.closeness_factors.scale(node.closeness)
+        rating += state.closeness_factors.scale(node.closeness)
             * NORMALIZE_TO_VALUE
             * self.config.mcda_weights.closeness;
 
         // 4. Eigenvector
-        rating += self.eigenvector_factors.scale(eigenvalue)
+        rating += state.eigenvector_factors.scale(eigenvalue)
             * NORMALIZE_TO_VALUE
             * self.config.mcda_weights.eigenvector;
 
