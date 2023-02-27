@@ -272,6 +272,10 @@ impl Ips {
         };
 
         for peer in &node.connections {
+            if *peer >= nodes.len() {
+                continue;
+            }
+
             peer_list_entry
                 .list
                 .push(IpAddr::from_str(nodes[*peer].ip.as_str()).expect(ERR_PARSE_IP));
@@ -390,6 +394,10 @@ impl Ips {
     }
 
     fn degree_centrality_avg(&self, degrees: &HashMap<IpAddr, u32>) -> f64 {
+        if degrees.len() < 1 {
+            return 0.0;
+        }
+
         (degrees.iter().fold(0, |acc, (_, &degree)| acc + degree) as f64) / degrees.len() as f64
     }
 
@@ -501,6 +509,85 @@ mod tests {
     use super::*;
 
     #[test]
+    fn generate_peerlist_for_node_test() {
+        let ips_config = IPSConfiguration::default();
+        let ips = Ips::new(ips_config);
+
+        let nodes = vec![
+            Node {
+                ip: "0.0.0.0".to_string(),
+                connections: vec![1, 2],
+                ..Default::default()
+            },
+            Node {
+                ip: "1.0.0.0".to_string(),
+                connections: vec![0, 2],
+                ..Default::default()
+            },
+            Node {
+                ip: "2.0.0.0".to_string(),
+                connections: vec![0, 1],
+                ..Default::default()
+            },
+        ];
+
+        let peer = ips.generate_peerlist_for_node(&nodes.get(0).unwrap(), &nodes);
+        assert_eq!(peer.list.len(), 2);
+        assert!(peer.list.contains(&IpAddr::from_str(&nodes.get(1).unwrap().ip).unwrap()));
+        assert!(peer.list.contains(&IpAddr::from_str(&nodes.get(2).unwrap().ip).unwrap()));
+    }
+
+    #[test]
+    fn rate_node_test() {
+        let ips_config = IPSConfiguration::default();
+        let ips = Ips::new(ips_config);
+
+        let nodes = vec![
+            Node {
+                ip: "0.0.0.0".to_string(),
+                connections: vec![1, 2],
+                ..Default::default()
+            },
+            Node {
+                ip: "1.0.0.0".to_string(),
+                connections: vec![0, 2],
+                ..Default::default()
+            },
+            Node {
+                ip: "2.0.0.0".to_string(),
+                connections: vec![0, 1],
+                ..Default::default()
+            },
+        ];
+
+        let state = ips.generate_state(&nodes);
+
+        assert_eq!(ips.rate_node(&nodes.get(0).unwrap(), &state), 10.0);
+    }
+
+    #[test]
+    fn degree_centrality_avg_test() {
+        let ips_config = IPSConfiguration::default();
+        let ips = Ips::new(ips_config);
+        let mut degrees = HashMap::new();
+        degrees.insert(IpAddr::from_str("0.0.0.0").unwrap(), 1);
+        degrees.insert(IpAddr::from_str("1.0.0.0").unwrap(), 2);
+        degrees.insert(IpAddr::from_str("2.1.2.1").unwrap(), 3);
+        degrees.insert(IpAddr::from_str("1.0.1.0").unwrap(), 4);
+
+        assert!(ips.degree_centrality_avg(&degrees) - 2.5 < 0.0001);
+    }
+
+    #[test]
+    fn degree_centrality_avg_empty_test() {
+        let ips_config = IPSConfiguration::default();
+        let ips = Ips::new(ips_config);
+        let degrees = HashMap::new();
+
+        assert_eq!(ips.degree_centrality_avg(&degrees), 0.0);
+    }
+
+    #[test]
     fn normalization_factors_determine_test() {
         let list = vec![1, 2, 3, 4, 5];
         let factors = NormalizationFactors::determine(&list);
@@ -510,7 +597,7 @@ mod tests {
     }
 
     #[test]
-    fn normalization_factors_lerp_test() {
+    fn normalization_factors_scale_test() {
         let factors = NormalizationFactors { min: 1.0, max: 5.0 };
         let value = 3.0;
 
@@ -518,7 +605,7 @@ mod tests {
     }
 
     #[test]
-    fn normalization_factors_lerp_divide_zero_test() {
+    fn normalization_factors_scale_divide_zero_test() {
         let factors = NormalizationFactors { min: 2.0, max: 2.0 };
         let value = 3.0;
 
