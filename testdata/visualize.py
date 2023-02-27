@@ -10,7 +10,7 @@ import rustworkx as rx
 from rustworkx.visualization import mpl_draw
 import sys
 
-conn_limit = 1000
+conn_limit = 20
 
 if len(sys.argv) < 2:
     print("Usage: python main.py peers.json")
@@ -27,8 +27,8 @@ for node in data:
     idx = graph.add_node(node['ip'])
     ipdict[node['ip']] = idx
 
-conns = 0
 for node in data:
+    conns = 0
     node_id = ipdict[node['ip']]
     for peer_ip in node['list']:
         graph.add_edge(node_id, ipdict[peer_ip], None)
