@@ -394,7 +394,7 @@ impl Ips {
     }
 
     fn degree_centrality_avg(&self, degrees: &HashMap<IpAddr, u32>) -> f64 {
-        if degrees.len() < 1 {
+        if degrees.is_empty() {
             return 0.0;
         }
 
@@ -531,10 +531,14 @@ mod tests {
             },
         ];
 
-        let peer = ips.generate_peerlist_for_node(&nodes.get(0).unwrap(), &nodes);
+        let peer = ips.generate_peerlist_for_node(nodes.get(0).unwrap(), &nodes);
         assert_eq!(peer.list.len(), 2);
-        assert!(peer.list.contains(&IpAddr::from_str(&nodes.get(1).unwrap().ip).unwrap()));
-        assert!(peer.list.contains(&IpAddr::from_str(&nodes.get(2).unwrap().ip).unwrap()));
+        assert!(peer
+            .list
+            .contains(&IpAddr::from_str(&nodes.get(1).unwrap().ip).unwrap()));
+        assert!(peer
+            .list
+            .contains(&IpAddr::from_str(&nodes.get(2).unwrap().ip).unwrap()));
     }
 
     #[test]
@@ -562,7 +566,7 @@ mod tests {
 
         let state = ips.generate_state(&nodes);
 
-        assert_eq!(ips.rate_node(&nodes.get(0).unwrap(), &state), 10.0);
+        assert_eq!(ips.rate_node(nodes.get(0).unwrap(), &state), 10.0);
     }
 
     #[test]
