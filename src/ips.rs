@@ -84,9 +84,6 @@ impl Ips {
     }
 
     /// Generate peer list - main function with The Algorithm
-    /// It needs state and agraph to be passed as parameters which need to be correlated with
-    /// the crawler's state and agraph (and with each other), so the indexes saved in the
-    /// agraph are the same as the positions of the nodes in the state.nodes.
     pub async fn generate(&mut self, state: &CrunchyState) -> Vec<Peer> {
         // Initial state will be used to compare the results of the computations
         let initial_state = self.generate_state(&state.nodes);
@@ -297,8 +294,8 @@ impl Ips {
         // Recalculate factors with new graph
         for node in ips_state.nodes.iter_mut() {
             let ip = IpAddr::from_str(&node.ip).unwrap();
-            node.betweenness = *betweenness.get(&ip).unwrap_or(&0.0);
-            node.closeness = *closeness.get(&ip).unwrap_or(&0.0);
+            node.betweenness = *betweenness.get(&ip).expect("can't fetch betweenness");
+            node.closeness = *closeness.get(&ip).expect("can't fetch closeness");
         }
 
         ips_state.degrees = graph.degree_centrality();
