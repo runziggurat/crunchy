@@ -188,7 +188,6 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    #[ignore = "need to be fixed"]
     async fn test_state_output() {
         let configuration = CrunchyConfiguration::default();
         let _ = fs::remove_file(configuration.state_file_path.as_ref().unwrap());
@@ -203,11 +202,10 @@ mod tests {
         );
         let size: usize = 2531;
         assert_eq!(state.nodes.len(), size);
-        let node = state.nodes[5].clone();
-        assert_eq!(node.ip, "38.242.199.182");
-        assert_eq!(node.connections.len(), 378);
-        // TODO(Kyle): need to re-calculate betweenneess after fixes in spectre to check if node's value is correct
-        assert!((node.betweenness - 0.000244483600836513).abs() < f64::EPSILON);
-        assert!((node.closeness - 2.0013493455674).abs() < f64::EPSILON);
+        let node = state.nodes[1837].clone();
+        assert_eq!(node.ip, "85.15.179.171");
+        assert_eq!(node.connections.len(), 10);
+        assert!((node.betweenness - 9.576638518159478e-8).abs() < f64::EPSILON);
+        assert!((node.closeness - 2.99046781519075).abs() < f64::EPSILON);
     }
 }
