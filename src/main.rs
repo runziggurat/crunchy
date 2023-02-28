@@ -3,6 +3,7 @@ mod geoip_cache;
 mod graph_utils;
 mod ips;
 mod nodes;
+mod peer;
 mod utils;
 
 use std::{fs, path::PathBuf, time::Instant};
