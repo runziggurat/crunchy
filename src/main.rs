@@ -3,6 +3,7 @@ mod geoip_cache;
 mod graph_utils;
 mod ips;
 mod nodes;
+mod normalization;
 mod peer;
 mod utils;
 

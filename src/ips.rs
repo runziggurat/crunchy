@@ -19,6 +19,7 @@ use std::{
 use crate::{
     config::{GeoLocationMode, IPSConfiguration},
     graph_utils::{construct_graph, find_bridges},
+    normalization::NormalizationFactors,
     peer::Peer,
     CrunchyState, Node,
 };
@@ -61,12 +62,6 @@ const NORMALIZE_1_3: f64 = NORMALIZE_TO_VALUE * 1.0 / 3.0;
 pub const ERR_PARSE_IP: &str = "failed to parse IP address";
 const ERR_GET_DEGREE: &str = "failed to get degree";
 const ERR_GET_EIGENVECTOR: &str = "failed to get eigenvector";
-
-#[derive(Default, Clone, Copy)]
-struct NormalizationFactors {
-    min: f64,
-    max: f64,
-}
 
 impl Ips {
     pub fn new(config: IPSConfiguration) -> Ips {
@@ -431,37 +426,6 @@ impl Ips {
     }
 }
 
-impl NormalizationFactors {
-    /// Determine min and max values for normalization.
-    fn determine<T>(list: &[T]) -> NormalizationFactors
-    where
-        T: PartialOrd + Into<f64> + Copy,
-    {
-        let min = list
-            .iter()
-            .min_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap();
-        let max = list
-            .iter()
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap();
-
-        NormalizationFactors {
-            min: (*min).into(),
-            max: (*max).into(),
-        }
-    }
-
-    /// Scale value to [0.0, 1.0] range.
-    fn scale(&self, value: f64) -> f64 {
-        if self.min == self.max {
-            return 0.0;
-        }
-
-        (value - self.min) / (self.max - self.min)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use spectre::{edge::Edge, graph::Graph};
@@ -516,31 +480,6 @@ mod tests {
         let degrees = HashMap::new();
 
         assert_eq!(ips.degree_centrality_avg(&degrees), 0.0);
-    }
-
-    #[test]
-    fn normalization_factors_determine_test() {
-        let list = vec![1, 2, 3, 4, 5];
-        let factors = NormalizationFactors::determine(&list);
-
-        assert_eq!(factors.min, 1.0);
-        assert_eq!(factors.max, 5.0);
-    }
-
-    #[test]
-    fn normalization_factors_scale_test() {
-        let factors = NormalizationFactors { min: 1.0, max: 5.0 };
-        let value = 3.0;
-
-        assert_eq!(factors.scale(value), 0.5);
-    }
-
-    #[test]
-    fn normalization_factors_scale_divide_zero_test() {
-        let factors = NormalizationFactors { min: 2.0, max: 2.0 };
-        let value = 3.0;
-
-        assert_eq!(factors.scale(value), 0.0);
     }
 
     #[tokio::test]
