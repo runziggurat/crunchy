@@ -282,7 +282,7 @@ impl Ips {
         let closeness = &nodes.iter().map(|n| n.closeness).collect::<Vec<f64>>();
         ips_state.closeness_factors = NormalizationFactors::determine(closeness);
 
-        ips_state.peer_list = Peer::generate_peerlist(nodes);
+        ips_state.peer_list = Peer::generate_all_peerlists(nodes);
 
         ips_state
     }
@@ -290,6 +290,7 @@ impl Ips {
     /// Calculates const factors for each node.
     fn calculate_const_factors(&self, state: &IpsState) -> Vec<PeerEntry> {
         let mut const_factors = Vec::with_capacity(state.nodes.len());
+        
         for (idx, node) in state.nodes.iter().enumerate() {
             let ip = IpAddr::from_str(node.ip.as_str()).expect(ERR_PARSE_IP);
             const_factors.push(PeerEntry {

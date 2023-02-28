@@ -15,18 +15,18 @@ pub struct Peer {
 
 impl Peer {
     /// Generate peerlist for given nodes based on their connections
-    pub fn generate_peerlist(nodes: &[Node]) -> Vec<Peer> {
+    pub fn generate_all_peerlists(nodes: &[Node]) -> Vec<Peer> {
         let mut peer_list = Vec::with_capacity(nodes.len());
 
         for node in nodes {
-            peer_list.push(Peer::generate_peerlist_for_node(node, nodes));
+            peer_list.push(Peer::generate_peerlist(node, nodes));
         }
 
         peer_list
     }
 
     /// Generate peerlist for given node based on its connections
-    pub fn generate_peerlist_for_node(node: &Node, nodes: &[Node]) -> Peer {
+    pub fn generate_peerlist(node: &Node, nodes: &[Node]) -> Peer {
         let mut peer_list_entry = Peer {
             ip: IpAddr::from_str(node.ip.as_str()).expect(ERR_PARSE_IP),
             list: Vec::with_capacity(node.connections.len()),
@@ -70,7 +70,7 @@ mod tests {
             },
         ];
 
-        let peer = Peer::generate_peerlist_for_node(nodes.get(0).unwrap(), &nodes);
+        let peer = Peer::generate_peerlist(nodes.get(0).unwrap(), &nodes);
         assert_eq!(peer.list.len(), 2);
         assert!(peer
             .list
