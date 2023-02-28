@@ -6,7 +6,7 @@ use std::{
 
 use spectre::{edge::Edge, graph::Graph};
 
-use crate::{ips::ERR_PARSE_IP, utils::median, Node};
+use crate::{ips::ips_algorithm::ERR_PARSE_IP, ips::utils::median, Node};
 
 /// Find bridges in graph.
 /// Bridges are edges that if removed disconnects the graph but here we try to find something

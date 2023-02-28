@@ -1,11 +1,7 @@
 mod config;
 mod geoip_cache;
-mod graph_utils;
 mod ips;
 mod nodes;
-mod normalization;
-mod peer;
-mod utils;
 
 use std::{fs, path::PathBuf, time::Instant};
 
@@ -16,7 +12,7 @@ use ziggurat_core_crawler::summary::NetworkSummary;
 use crate::{
     config::CrunchyConfiguration,
     geoip_cache::GeoIPCache,
-    ips::Ips,
+    ips::ips_algorithm::Ips,
     nodes::{create_nodes, Node},
 };
 

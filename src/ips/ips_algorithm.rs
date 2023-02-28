@@ -17,10 +17,11 @@ use std::{
 };
 
 use crate::{
-    config::{GeoLocationMode, IPSConfiguration},
-    graph_utils::{construct_graph, find_bridges},
-    normalization::NormalizationFactors,
-    peer::Peer,
+    config::{GeoLocationMode},
+    ips::config::IPSConfiguration,
+    ips::graph_utils::{construct_graph, find_bridges},
+    ips::normalization::NormalizationFactors,
+    ips::peer::Peer,
     CrunchyState, Node,
 };
 
