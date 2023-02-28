@@ -7,7 +7,7 @@ use std::{
 use spectre::{edge::Edge, graph::Graph};
 
 use crate::{
-    ips::{ips_algorithm::ERR_PARSE_IP, utils::median},
+    ips::{algorithm::ERR_PARSE_IP, utils::median},
     Node,
 };
 

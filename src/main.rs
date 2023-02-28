@@ -12,7 +12,7 @@ use ziggurat_core_crawler::summary::NetworkSummary;
 use crate::{
     config::CrunchyConfiguration,
     geoip_cache::GeoIPCache,
-    ips::ips_algorithm::Ips,
+    ips::algorithm::Ips,
     nodes::{create_nodes, Node},
 };
 

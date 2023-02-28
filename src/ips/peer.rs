@@ -2,7 +2,7 @@ use std::{net::IpAddr, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{ips::ips_algorithm::ERR_PARSE_IP, Node};
+use crate::{ips::algorithm::ERR_PARSE_IP, Node};
 
 /// Peer list structure containing peer list for each node
 #[derive(Clone, Serialize, Deserialize)]
