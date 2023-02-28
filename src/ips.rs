@@ -261,7 +261,8 @@ impl Ips {
 
         ips_state.degree_factors = NormalizationFactors::determine(
             &ips_state.degrees.values().cloned().collect::<Vec<u32>>(),
-        );
+        )
+        .expect("can't calculate degree factors");
 
         ips_state.eigenvector_factors = NormalizationFactors::determine(
             &ips_state
@@ -269,13 +270,16 @@ impl Ips {
                 .values()
                 .cloned()
                 .collect::<Vec<f64>>(),
-        );
+        )
+        .expect("can't calculate eigenvector factors");
 
         let betweenness = &nodes.iter().map(|n| n.betweenness).collect::<Vec<f64>>();
-        ips_state.betweenness_factors = NormalizationFactors::determine(betweenness);
+        ips_state.betweenness_factors = NormalizationFactors::determine(betweenness)
+            .expect("can't calculate betweenness factors");
 
         let closeness = &nodes.iter().map(|n| n.closeness).collect::<Vec<f64>>();
-        ips_state.closeness_factors = NormalizationFactors::determine(closeness);
+        ips_state.closeness_factors =
+            NormalizationFactors::determine(closeness).expect("can't calculate closeness factors");
 
         ips_state.peer_list = Peer::generate_all_peerlists(nodes);
 
