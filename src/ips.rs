@@ -290,7 +290,7 @@ impl Ips {
     /// Calculates const factors for each node.
     fn calculate_const_factors(&self, state: &IpsState) -> Vec<PeerEntry> {
         let mut const_factors = Vec::with_capacity(state.nodes.len());
-        
+
         for (idx, node) in state.nodes.iter().enumerate() {
             let ip = IpAddr::from_str(node.ip.as_str()).expect(ERR_PARSE_IP);
             const_factors.push(PeerEntry {
