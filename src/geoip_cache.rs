@@ -9,7 +9,13 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
-use ziggurat_core_geoip::geoip::{GeoIPService, GeoInfo};
+use ziggurat_core_geoip::{
+    geoip::{GeoIPService, GeoInfo},
+    providers::{
+        ip2loc::Ip2LocationService,
+        ipgeoloc::{BackendProvider, IpGeolocateService},
+    },
+};
 
 use crate::config::{GeoIPConfiguration, DEFAULT_KEEP_IN_CACHE_DAYS};
 
@@ -116,5 +122,33 @@ impl GeoIPCache {
         }
 
         None
+    }
+
+    /// Configure the providers based on the configuration.
+    pub fn configure_providers(&mut self, config: &GeoIPConfiguration) {
+        if config.ip2location_enable {
+            self.add_provider(Box::new(Ip2LocationService::new(
+                config
+                    .ip2location_db_path
+                    .as_ref()
+                    .unwrap()
+                    .to_str()
+                    .unwrap(),
+            )));
+        }
+
+        if config.ipapico_enable {
+            self.add_provider(Box::new(IpGeolocateService::new(
+                BackendProvider::IpApiCo,
+                config.ipapico_api_key.as_ref().unwrap().as_str(),
+            )));
+        }
+
+        if config.ipapicom_enable {
+            self.add_provider(Box::new(IpGeolocateService::new(
+                BackendProvider::IpApiCom,
+                config.ipapicom_api_key.as_ref().unwrap().as_str(),
+            )));
+        }
     }
 }

@@ -70,6 +70,8 @@ pub fn find_bridges(nodes: &[Node], threshold_adjustment: f64) -> HashMap<usize,
     bridges
 }
 
+/// Reconstruct graph from nodes and their connection subfield. This step is used to run
+/// some graph algorithms on the graph (like betweenness centrality).
 pub fn construct_graph(nodes: &[Node]) -> Graph<IpAddr> {
     let mut graph = Graph::new();
 

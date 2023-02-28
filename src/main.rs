@@ -3,6 +3,7 @@ mod geoip_cache;
 mod graph_utils;
 mod ips;
 mod nodes;
+mod peer;
 mod utils;
 
 use std::{fs, path::PathBuf, time::Instant};
@@ -10,10 +11,6 @@ use std::{fs, path::PathBuf, time::Instant};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use ziggurat_core_crawler::summary::NetworkSummary;
-use ziggurat_core_geoip::providers::{
-    ip2loc::Ip2LocationService,
-    ipgeoloc::{BackendProvider, IpGeolocateService},
-};
 
 use crate::{
     config::CrunchyConfiguration,
@@ -46,10 +43,7 @@ pub fn load_state(filepath: &str) -> CrunchyState {
     serde_json::from_str(&jstring).unwrap()
 }
 
-//TODO(asmie): this NEED to be refactorized as currently it is method-level smell (too long)
-// doing too many things. Especially, when I'd like to add here some other stuff like peer sharing it would
-// be too messy. It should be re-designed and divided into smaller functions with appropriate names and
-// functionalities (like computing graphs, counting factors, geolocalization etc).
+/// Perform all the necessary steps to generate the state file and the peer list.
 async fn write_state(config: &CrunchyConfiguration) {
     let mut geo_cache = GeoIPCache::new(&config.geoip_config);
     let response = load_response(config.input_file_path.as_ref().unwrap().to_str().unwrap());
@@ -61,41 +55,7 @@ async fn write_state(config: &CrunchyConfiguration) {
         println!("No cache file to load! Will be created one.");
     }
 
-    if config.geoip_config.ip2location_enable {
-        geo_cache.add_provider(Box::new(Ip2LocationService::new(
-            config
-                .geoip_config
-                .ip2location_db_path
-                .as_ref()
-                .unwrap()
-                .to_str()
-                .unwrap(),
-        )));
-    }
-
-    if config.geoip_config.ipapico_enable {
-        geo_cache.add_provider(Box::new(IpGeolocateService::new(
-            BackendProvider::IpApiCo,
-            config
-                .geoip_config
-                .ipapico_api_key
-                .as_ref()
-                .unwrap()
-                .as_str(),
-        )));
-    }
-
-    if config.geoip_config.ipapicom_enable {
-        geo_cache.add_provider(Box::new(IpGeolocateService::new(
-            BackendProvider::IpApiCom,
-            config
-                .geoip_config
-                .ipapicom_api_key
-                .as_ref()
-                .unwrap()
-                .as_str(),
-        )));
-    }
+    geo_cache.configure_providers(&config.geoip_config);
 
     let nodes = create_nodes(
         &response.result.indices,
