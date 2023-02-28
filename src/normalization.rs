@@ -10,10 +10,14 @@ pub struct NormalizationFactors {
 
 impl NormalizationFactors {
     /// Determine min and max values for normalization.
-    pub fn determine<T>(list: &[T]) -> NormalizationFactors
+    pub fn determine<T>(list: &[T]) -> Option<NormalizationFactors>
     where
         T: PartialOrd + Into<f64> + Copy,
     {
+        if list.is_empty() {
+            return None;
+        }
+
         let min = list
             .iter()
             .min_by(|a, b| a.partial_cmp(b).unwrap())
@@ -23,10 +27,10 @@ impl NormalizationFactors {
             .max_by(|a, b| a.partial_cmp(b).unwrap())
             .unwrap();
 
-        NormalizationFactors {
+        Some(NormalizationFactors {
             min: (*min).into(),
             max: (*max).into(),
-        }
+        })
     }
 
     /// Scale value to [0.0, 1.0] range.
@@ -46,10 +50,18 @@ mod tests {
     #[test]
     fn normalization_factors_determine_test() {
         let list = vec![1, 2, 3, 4, 5];
-        let factors = NormalizationFactors::determine(&list);
+        let factors = NormalizationFactors::determine(&list).unwrap();
 
         assert_eq!(factors.min, 1.0);
         assert_eq!(factors.max, 5.0);
+    }
+
+    #[test]
+    fn normalization_factors_determine_empty_test() {
+        let list = Vec::<i32>::new();
+        let factors = NormalizationFactors::determine(&list);
+
+        assert!(factors.is_none());
     }
 
     #[test]
