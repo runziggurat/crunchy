@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+
 use serde::Deserialize;
 
 use crate::config::GeoLocationMode;
