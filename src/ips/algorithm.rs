@@ -196,7 +196,7 @@ impl Ips {
                 peer_ratings.sort_by(|a, b| b.rating.partial_cmp(&a.rating).unwrap());
 
                 // Remove peers that are already in peerlist
-                peer_ratings.retain(|x| !curr_peer_ratings.contains(&x));
+                peer_ratings.retain(|x| !curr_peer_ratings.contains(x));
 
                 let mut candidates = peer_ratings
                     .iter()
@@ -220,7 +220,11 @@ impl Ips {
                 }
 
                 // Write new node set
-                final_state.nodes[node_idx].connections = curr_peer_ratings.iter().map(|x| x.index).collect::<Vec<usize>>().to_vec();
+                final_state.nodes[node_idx].connections = curr_peer_ratings
+                    .iter()
+                    .map(|x| x.index)
+                    .collect::<Vec<usize>>()
+                    .to_vec();
             }
         }
 
