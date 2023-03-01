@@ -59,7 +59,7 @@ async fn write_state(config: &CrunchyConfiguration) {
         &response.result.node_addrs,
         &geo_cache,
     )
-        .await;
+    .await;
 
     let state = CrunchyState {
         elapsed: elapsed.as_secs_f64(),
