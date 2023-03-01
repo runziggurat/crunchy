@@ -160,7 +160,7 @@ mod tests {
         let size: usize = 2531;
         assert_eq!(state.nodes.len(), size);
         let node = state.nodes[1837].clone();
-        assert_eq!(node.ip, "85.15.179.171");
+        assert_eq!(node.addr.ip().to_string(), "85.15.179.171");
         assert_eq!(node.connections.len(), 10);
         assert!((node.betweenness - 9.576638518159478e-8).abs() < f64::EPSILON);
         assert!((node.closeness - 2.99046781519075).abs() < f64::EPSILON);
