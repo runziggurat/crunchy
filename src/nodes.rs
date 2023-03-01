@@ -1,15 +1,16 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, net::SocketAddr};
 
 use serde::{Deserialize, Serialize};
 use spectre::{edge::Edge, graph::Graph};
 use ziggurat_core_geoip::geoip::GeoInfo;
+use ziggurat_core_crawler::summary::NodesIndices;
 
 use crate::geoip_cache::GeoIPCache;
 
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Node {
-    /// the ip address, dotted quad, without port number
-    pub ip: String,
+    /// the ip address with port number
+    pub addr: SocketAddr,
     /// the computed betweenness
     pub betweenness: f64,
     /// the computed closeness
@@ -37,9 +38,9 @@ fn hash_geo_location(latitude: f64, longitude: f64) -> String {
 pub fn set_cell_heights(nodes: &mut Vec<Node>, cell_stats: &mut HashMap<String, u32>) {
     for node in nodes {
         if let Some(GeoInfo {
-            coordinates: Some(coordinates),
-            ..
-        }) = &node.geolocation
+                        coordinates: Some(coordinates),
+                        ..
+                    }) = &node.geolocation
         {
             let geostr = hash_geo_location(coordinates.latitude, coordinates.longitude);
             if let Some(count) = cell_stats.get(&geostr) {
@@ -58,9 +59,9 @@ pub fn get_cell_position(
     geolocation: &Option<GeoInfo>,
 ) -> u32 {
     if let Some(GeoInfo {
-        coordinates: Some(coordinates),
-        ..
-    }) = geolocation
+                    coordinates: Some(coordinates),
+                    ..
+                }) = geolocation
     {
         let geostr = hash_geo_location(coordinates.latitude, coordinates.longitude);
 
@@ -73,8 +74,8 @@ pub fn get_cell_position(
 }
 
 pub async fn create_nodes(
-    indices: &Vec<Vec<usize>>,
-    node_ips: &[String],
+    indices: &NodesIndices,
+    node_addrs: &[SocketAddr],
     geo_cache: &GeoIPCache,
 ) -> Vec<Node> {
     let mut graph = Graph::new();
@@ -93,12 +94,12 @@ pub async fn create_nodes(
 
     for i in 0..indices.len() {
         let geolocation = geo_cache
-            .lookup(node_ips[i].parse().expect("malformed IP address"))
+            .lookup(node_addrs[i].ip())
             .await;
         let cell_position = get_cell_position(&mut cell_stats, &geolocation);
 
         let node: Node = Node {
-            ip: node_ips[i].clone(),
+            addr: node_addrs[i],
             betweenness: *betweenness
                 .get(&i)
                 .expect("could not find betweenness value for index}"),
