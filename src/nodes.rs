@@ -25,6 +25,21 @@ pub struct Node {
     pub geolocation: Option<GeoInfo>,
 }
 
+// Implemented it just to make it easier to create a default node for testing
+impl Default for Node {
+    fn default() -> Self {
+        Self {
+            addr: SocketAddr::new("0.0.0.0".parse().unwrap(), 0),
+            betweenness: 0.0,
+            closeness: 0.0,
+            cell_position: 0,
+            cell_height: 0,
+            connections: Vec::new(),
+            geolocation: None,
+        }
+    }
+}
+
 fn hash_geo_location(latitude: f64, longitude: f64) -> String {
     // make unique every 0.2 degrees in both axes, so multiply by 5, convert to integer
     const DEGREE_RESOLUTION: f64 = 1.0 / 0.2;

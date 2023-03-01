@@ -1,15 +1,11 @@
 use std::{
     collections::{HashMap, HashSet},
     net::IpAddr,
-    str::FromStr,
 };
 
 use spectre::{edge::Edge, graph::Graph};
 
-use crate::{
-    ips::{algorithm::ERR_PARSE_IP, utils::median},
-    Node,
-};
+use crate::{ips::utils::median, Node};
 
 /// Find bridges in graph.
 /// Bridges are edges that if removed disconnects the graph but here we try to find something
@@ -79,12 +75,9 @@ pub fn construct_graph(nodes: &[Node]) -> Graph<IpAddr> {
     let mut graph = Graph::new();
 
     for node in nodes {
-        let node_ip = IpAddr::from_str(node.ip.as_str()).expect(ERR_PARSE_IP);
+        let node_ip = node.addr.ip();
         for i in &node.connections {
-            let edge = Edge::new(
-                node_ip,
-                IpAddr::from_str(nodes[*i].ip.as_str()).expect(ERR_PARSE_IP),
-            );
+            let edge = Edge::new(node_ip, nodes[*i].addr.ip());
             graph.insert(edge);
         }
     }
@@ -93,23 +86,28 @@ pub fn construct_graph(nodes: &[Node]) -> Graph<IpAddr> {
 
 #[cfg(test)]
 mod tests {
+    use std::{
+        net::{Ipv4Addr, SocketAddr},
+        str::FromStr,
+    };
+
     use super::*;
 
     #[test]
     fn construct_graph_test() {
         let nodes = vec![
             Node {
-                ip: "0.0.0.0".to_string(),
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 1234),
                 connections: vec![1, 2],
                 ..Default::default()
             },
             Node {
-                ip: "1.0.0.0".to_string(),
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(1, 0, 0, 0)), 1234),
                 connections: vec![0, 2],
                 ..Default::default()
             },
             Node {
-                ip: "2.0.0.0".to_string(),
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(2, 0, 0, 0)), 1234),
                 connections: vec![0, 1],
                 ..Default::default()
             },
@@ -135,49 +133,49 @@ mod tests {
     fn find_bridges_test() {
         let nodes = vec![
             Node {
-                ip: "0.0.0.0".to_string(),
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 1234),
                 betweenness: 1.0,
                 connections: vec![1, 2],
                 ..Default::default()
             },
             Node {
-                ip: "0.0.0.0".to_string(),
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 1234),
                 betweenness: 1.5,
                 connections: vec![0, 2, 3],
                 ..Default::default()
             },
             Node {
-                ip: "0.0.0.0".to_string(),
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 1234),
                 betweenness: 1.3,
                 connections: vec![1, 3],
                 ..Default::default()
             },
             Node {
-                ip: "0.0.0.0".to_string(),
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 1234),
                 betweenness: 3.1,
                 connections: vec![1, 2, 4],
                 ..Default::default()
             },
             Node {
-                ip: "0.0.0.0".to_string(),
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 1234),
                 betweenness: 3.2,
                 connections: vec![3, 5, 7],
                 ..Default::default()
             },
             Node {
-                ip: "0.0.0.0".to_string(),
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 1234),
                 betweenness: 1.0,
                 connections: vec![4, 6],
                 ..Default::default()
             },
             Node {
-                ip: "0.0.0.0".to_string(),
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 1234),
                 betweenness: 1.2,
                 connections: vec![5, 7],
                 ..Default::default()
             },
             Node {
-                ip: "0.0.0.0".to_string(),
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 1234),
                 betweenness: 1.4,
                 connections: vec![4, 6],
                 ..Default::default()

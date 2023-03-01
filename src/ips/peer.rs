@@ -1,8 +1,8 @@
-use std::{net::IpAddr, str::FromStr};
+use std::net::IpAddr;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{ips::algorithm::ERR_PARSE_IP, Node};
+use crate::Node;
 
 /// Peer list structure containing peer list for each node
 #[derive(Clone, Serialize, Deserialize)]
@@ -28,7 +28,7 @@ impl Peer {
     /// Generate peerlist for given node based on its connections
     pub fn generate_peerlist(node: &Node, nodes: &[Node]) -> Peer {
         let mut peer_list_entry = Peer {
-            ip: IpAddr::from_str(node.ip.as_str()).expect(ERR_PARSE_IP),
+            ip: node.addr.ip(),
             list: Vec::with_capacity(node.connections.len()),
         };
 
@@ -37,9 +37,7 @@ impl Peer {
                 continue;
             }
 
-            peer_list_entry
-                .list
-                .push(IpAddr::from_str(nodes[*peer].ip.as_str()).expect(ERR_PARSE_IP));
+            peer_list_entry.list.push(nodes[*peer].addr.ip());
         }
 
         peer_list_entry
@@ -48,23 +46,25 @@ impl Peer {
 
 #[cfg(test)]
 mod tests {
+    use std::net::{Ipv4Addr, SocketAddr};
+
     use super::*;
 
     #[test]
     fn generate_peerlist_for_node_test() {
         let nodes = vec![
             Node {
-                ip: "0.0.0.0".to_string(),
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(1, 0, 0, 0)), 1234),
                 connections: vec![1, 2],
                 ..Default::default()
             },
             Node {
-                ip: "1.0.0.0".to_string(),
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(2, 0, 0, 0)), 1234),
                 connections: vec![0, 2],
                 ..Default::default()
             },
             Node {
-                ip: "2.0.0.0".to_string(),
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(3, 0, 0, 0)), 1234),
                 connections: vec![0, 1],
                 ..Default::default()
             },
@@ -72,11 +72,7 @@ mod tests {
 
         let peer = Peer::generate_peerlist(nodes.get(0).unwrap(), &nodes);
         assert_eq!(peer.list.len(), 2);
-        assert!(peer
-            .list
-            .contains(&IpAddr::from_str(&nodes.get(1).unwrap().ip).unwrap()));
-        assert!(peer
-            .list
-            .contains(&IpAddr::from_str(&nodes.get(2).unwrap().ip).unwrap()));
+        assert!(peer.list.contains(&nodes.get(1).unwrap().addr.ip()));
+        assert!(peer.list.contains(&nodes.get(2).unwrap().addr.ip()));
     }
 }

@@ -13,7 +13,6 @@
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     net::IpAddr,
-    str::FromStr,
 };
 
 use crate::{
@@ -62,7 +61,6 @@ const NORMALIZE_HALF: f64 = NORMALIZE_TO_VALUE / 2.0;
 const NORMALIZE_2_3: f64 = NORMALIZE_TO_VALUE * 2.0 / 3.0;
 const NORMALIZE_1_3: f64 = NORMALIZE_TO_VALUE * 1.0 / 3.0;
 
-pub const ERR_PARSE_IP: &str = "failed to parse IP address";
 const ERR_GET_DEGREE: &str = "failed to get degree";
 const ERR_GET_EIGENVECTOR: &str = "failed to get eigenvector";
 
@@ -108,7 +106,7 @@ impl Ips {
 
         // Iterate over nodes to generate peerlist entry for each node
         for (node_idx, node) in working_state.nodes.iter().enumerate() {
-            let node_ip = IpAddr::from_str(node.ip.as_str()).expect(ERR_PARSE_IP);
+            let node_ip = node.addr.ip();
 
             // Clone const factors for each node to be able to modify them
             let mut peer_ratings = const_factors.clone();
@@ -249,7 +247,7 @@ impl Ips {
 
         // Recalculate factors with new graph
         for node in ips_state.nodes.iter_mut() {
-            let ip = IpAddr::from_str(&node.ip).unwrap();
+            let ip = node.addr.ip();
             node.betweenness = *betweenness.get(&ip).expect("can't fetch betweenness");
             node.closeness = *closeness.get(&ip).expect("can't fetch closeness");
         }
@@ -289,7 +287,7 @@ impl Ips {
         let mut const_factors = Vec::with_capacity(state.nodes.len());
 
         for (idx, node) in state.nodes.iter().enumerate() {
-            let ip = IpAddr::from_str(node.ip.as_str()).expect(ERR_PARSE_IP);
+            let ip = node.addr.ip();
             const_factors.push(PeerEntry {
                 ip,
                 index: idx,
@@ -364,7 +362,7 @@ impl Ips {
         // Rating is a combination of the following factors:
         let mut rating = 0.0;
 
-        let ip = IpAddr::from_str(node.ip.as_str()).expect(ERR_PARSE_IP);
+        let ip = node.addr.ip();
         let degree = *state.degrees.get(&ip).expect(ERR_GET_DEGREE);
         let eigenvalue = *state.eigenvalues.get(&ip).expect(ERR_GET_EIGENVECTOR);
 
@@ -430,9 +428,16 @@ impl Ips {
 
 #[cfg(test)]
 mod tests {
+    use std::{
+        net::{Ipv4Addr, SocketAddr},
+        str::FromStr,
+    };
+
     use spectre::{edge::Edge, graph::Graph};
 
     use super::*;
+
+    pub const ERR_PARSE_IP: &str = "failed to parse IP address";
 
     #[test]
     fn rate_node_test() {
@@ -441,17 +446,17 @@ mod tests {
 
         let nodes = vec![
             Node {
-                ip: "0.0.0.0".to_string(),
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 1234),
                 connections: vec![1, 2],
                 ..Default::default()
             },
             Node {
-                ip: "1.0.0.0".to_string(),
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(1, 0, 0, 0)), 1234),
                 connections: vec![0, 2],
                 ..Default::default()
             },
             Node {
-                ip: "2.0.0.0".to_string(),
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(2, 0, 0, 0)), 1234),
                 connections: vec![0, 1],
                 ..Default::default()
             },
@@ -493,12 +498,12 @@ mod tests {
         let ips = Ips::new(ips_config);
 
         for i in 0..10 {
-            let ip = format!("192.168.0.{i}");
+            let ip = IpAddr::from_str(format!("192.169.0.{i}").as_str()).expect(ERR_PARSE_IP);
 
-            ipaddrs.push(IpAddr::from_str(ip.as_str()).expect(ERR_PARSE_IP));
+            ipaddrs.push(ip);
 
             let node = Node {
-                ip: ip.clone(),
+                addr: SocketAddr::new(ip, 1234),
                 ..Default::default()
             };
             nodes.push(node);
@@ -510,10 +515,7 @@ mod tests {
                 if i == j {
                     continue;
                 }
-                graph.insert(Edge::new(
-                    IpAddr::from_str(nodes[i].ip.as_str()).expect(ERR_PARSE_IP),
-                    IpAddr::from_str(nodes[j].ip.as_str()).expect(ERR_PARSE_IP),
-                ));
+                graph.insert(Edge::new(nodes[i].addr.ip(), nodes[j].addr.ip()));
                 nodes[i].connections.push(j);
                 nodes[j].connections.push(i);
             }
@@ -533,12 +535,12 @@ mod tests {
         let ips = Ips::new(ips_config);
 
         for i in 0..10 {
-            let ip = format!("192.169.0.{i}");
+            let ip = IpAddr::from_str(format!("192.169.0.{i}").as_str()).expect(ERR_PARSE_IP);
 
-            ipaddrs.push(IpAddr::from_str(ip.as_str()).expect(ERR_PARSE_IP));
+            ipaddrs.push(ip);
 
             let node = Node {
-                ip: ip.clone(),
+                addr: SocketAddr::new(ip, 1234),
                 ..Default::default()
             };
             nodes.push(node);
@@ -550,10 +552,7 @@ mod tests {
                 if i != j {
                     continue;
                 }
-                graph.insert(Edge::new(
-                    IpAddr::from_str(nodes[i].ip.as_str()).expect(ERR_PARSE_IP),
-                    IpAddr::from_str(nodes[j].ip.as_str()).expect(ERR_PARSE_IP),
-                ));
+                graph.insert(Edge::new(nodes[i].addr.ip(), nodes[j].addr.ip()));
 
                 nodes[i].connections.push(j);
                 nodes[j].connections.push(i);
