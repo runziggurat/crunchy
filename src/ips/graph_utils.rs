@@ -1,6 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
-    net::IpAddr,
+    net::SocketAddr,
 };
 
 use spectre::{edge::Edge, graph::Graph};
@@ -71,13 +71,13 @@ pub fn find_bridges(nodes: &[Node], threshold_adjustment: f64) -> HashMap<usize,
 
 /// Reconstruct graph from nodes and their connection subfield. This step is used to run
 /// some graph algorithms on the graph (like betweenness centrality).
-pub fn construct_graph(nodes: &[Node]) -> Graph<IpAddr> {
+pub fn construct_graph(nodes: &[Node]) -> Graph<SocketAddr> {
     let mut graph = Graph::new();
 
     for node in nodes {
-        let node_ip = node.addr.ip();
+        let node_addr = node.addr;
         for i in &node.connections {
-            let edge = Edge::new(node_ip, nodes[*i].addr.ip());
+            let edge = Edge::new(node_addr, nodes[*i].addr);
             graph.insert(edge);
         }
     }
@@ -86,10 +86,7 @@ pub fn construct_graph(nodes: &[Node]) -> Graph<IpAddr> {
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        net::{Ipv4Addr, SocketAddr},
-        str::FromStr,
-    };
+    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
     use super::*;
 
@@ -116,15 +113,30 @@ mod tests {
         let mut graph = construct_graph(&nodes);
         let degrees = graph.degree_centrality();
         assert_eq!(
-            degrees.get(&IpAddr::from_str("0.0.0.0").unwrap()).unwrap(),
+            degrees
+                .get(&SocketAddr::new(
+                    IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+                    1234
+                ))
+                .unwrap(),
             &2
         );
         assert_eq!(
-            degrees.get(&IpAddr::from_str("1.0.0.0").unwrap()).unwrap(),
+            degrees
+                .get(&SocketAddr::new(
+                    IpAddr::V4(Ipv4Addr::new(1, 0, 0, 0)),
+                    1234
+                ))
+                .unwrap(),
             &2
         );
         assert_eq!(
-            degrees.get(&IpAddr::from_str("2.0.0.0").unwrap()).unwrap(),
+            degrees
+                .get(&SocketAddr::new(
+                    IpAddr::V4(Ipv4Addr::new(2, 0, 0, 0)),
+                    1234
+                ))
+                .unwrap(),
             &2
         );
     }
