@@ -47,7 +47,7 @@ struct IpsState {
 }
 
 /// Internal structure for storing peer information
-#[derive(Copy, Clone)]
+#[derive(PartialEq, Copy, Clone)]
 struct PeerEntry {
     /// IP address of the peer
     pub ip: IpAddr,
@@ -73,15 +73,12 @@ impl Ips {
 
     /// Generate peer list - main function with The Algorithm
     pub async fn generate(&mut self, state: &CrunchyState) -> Vec<Peer> {
-        // Initial state will be used to compare the results of the computations
-        let initial_state = self.generate_state(&state.nodes);
-
         // This is the working set of factors.
         //TODO(asmie): add .clone() to the initial_state when it will be used and remove creating new vector
         // Now we're creating a new vector because MCDA code operates not on state but on the peerlist
         // and if we left here peerlist from the state, it would be doubled by MCDA.
-        let mut working_state = initial_state;
-        working_state.peer_list = Vec::new();
+        let working_state = self.generate_state(&state.nodes);
+        let mut final_state = working_state.clone();
 
         // Phase 1: Security checks
         //TODO(asmie): Detecting islands, bridges and hot nodes. Checking if there are any nodes that upon removal
@@ -118,11 +115,6 @@ impl Ips {
 
             let mut curr_peer_ratings: Vec<PeerEntry> = Vec::new();
 
-            let mut peer_list_entry = Peer {
-                ip: node_ip,
-                list: Vec::new(),
-            };
-
             // 1 - update ranks by location for specified node
             // This need to be done every time as location ranking will change for differently
             // located nodes.
@@ -132,10 +124,6 @@ impl Ips {
 
             // Load peerlist with current connections (we don't want to change everything)
             for peer in &working_state.nodes[node_idx].connections {
-                peer_list_entry.list.push(
-                    IpAddr::from_str(working_state.nodes[*peer].ip.as_str()).expect(ERR_PARSE_IP),
-                );
-
                 // Remember current peer ratings
                 curr_peer_ratings.push(peer_ratings[*peer]);
             }
@@ -197,7 +185,7 @@ impl Ips {
                     {
                         continue;
                     }
-                    peer_list_entry.list.retain(|x| x != &peer.ip);
+                    curr_peer_ratings.retain(|x| x != &peer);
                 }
                 peers_to_delete_count -= 1;
             }
@@ -208,7 +196,7 @@ impl Ips {
                 peer_ratings.sort_by(|a, b| b.rating.partial_cmp(&a.rating).unwrap());
 
                 // Remove peers that are already in peerlist
-                peer_ratings.retain(|x| !peer_list_entry.list.contains(&x.ip));
+                peer_ratings.retain(|x| !curr_peer_ratings.contains(&x));
 
                 let mut candidates = peer_ratings
                     .iter()
@@ -228,15 +216,18 @@ impl Ips {
                 });
 
                 for peer in candidates.iter().take(peers_to_add_count as usize) {
-                    peer_list_entry.list.push(peer.ip);
+                    curr_peer_ratings.push(*peer);
                 }
+
+                // Write new node set
+                final_state.nodes[node_idx].connections = curr_peer_ratings.iter().map(|x| x.index).collect::<Vec<usize>>().to_vec();
             }
-            working_state.peer_list.push(peer_list_entry);
         }
 
         // TODO(asmie): recalculate and compare factors to check if network is going better
+        final_state = self.generate_state(&final_state.nodes);
 
-        working_state.peer_list
+        final_state.peer_list
     }
 
     // Helper functions
