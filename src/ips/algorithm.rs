@@ -12,7 +12,7 @@
 
 use std::{
     collections::{HashMap, HashSet, VecDeque},
-    net::IpAddr,
+    net::SocketAddr,
 };
 
 use crate::{
@@ -37,8 +37,8 @@ pub struct Ips {
 struct IpsState {
     pub nodes: Vec<Node>,
     pub peer_list: Vec<Peer>,
-    pub degrees: HashMap<IpAddr, u32>,
-    pub eigenvalues: HashMap<IpAddr, f64>,
+    pub degrees: HashMap<SocketAddr, u32>,
+    pub eigenvalues: HashMap<SocketAddr, f64>,
     pub degree_factors: NormalizationFactors,
     pub betweenness_factors: NormalizationFactors,
     pub closeness_factors: NormalizationFactors,
@@ -49,7 +49,7 @@ struct IpsState {
 #[derive(PartialEq, Copy, Clone)]
 struct PeerEntry {
     /// IP address of the peer
-    pub ip: IpAddr,
+    pub addr: SocketAddr,
     /// Index of the peer in the state.nodes
     pub index: usize,
     /// Ranking of the peer
@@ -106,7 +106,7 @@ impl Ips {
 
         // Iterate over nodes to generate peerlist entry for each node
         for (node_idx, node) in working_state.nodes.iter().enumerate() {
-            let node_ip = node.addr.ip();
+            let node_addr = node.addr;
 
             // Clone const factors for each node to be able to modify them
             let mut peer_ratings = const_factors.clone();
@@ -127,7 +127,7 @@ impl Ips {
             }
 
             // Get current node's degree for further computations
-            let degree = *working_state.degrees.get(&node_ip).expect(ERR_GET_DEGREE);
+            let degree = *working_state.degrees.get(&node_addr).expect(ERR_GET_DEGREE);
 
             // 2 - Calculate desired vertex degree
             // In the first iteration we will use degree average so all nodes should pursue to
@@ -247,9 +247,9 @@ impl Ips {
 
         // Recalculate factors with new graph
         for node in ips_state.nodes.iter_mut() {
-            let ip = node.addr.ip();
-            node.betweenness = *betweenness.get(&ip).expect("can't fetch betweenness");
-            node.closeness = *closeness.get(&ip).expect("can't fetch closeness");
+            let addr = node.addr;
+            node.betweenness = *betweenness.get(&addr).expect("can't fetch betweenness");
+            node.closeness = *closeness.get(&addr).expect("can't fetch closeness");
         }
 
         ips_state.degrees = graph.degree_centrality();
@@ -286,11 +286,11 @@ impl Ips {
     fn calculate_const_factors(&self, state: &IpsState) -> Vec<PeerEntry> {
         let mut const_factors = Vec::with_capacity(state.nodes.len());
 
-        for (idx, node) in state.nodes.iter().enumerate() {
-            let ip = node.addr.ip();
+        for (index, node) in state.nodes.iter().enumerate() {
+            let addr = node.addr;
             const_factors.push(PeerEntry {
-                ip,
-                index: idx,
+                addr,
+                index,
                 rating: self.rate_node(node, state),
             });
         }
@@ -348,7 +348,7 @@ impl Ips {
         }
     }
 
-    fn degree_centrality_avg(&self, degrees: &HashMap<IpAddr, u32>) -> f64 {
+    fn degree_centrality_avg(&self, degrees: &HashMap<SocketAddr, u32>) -> f64 {
         if degrees.is_empty() {
             return 0.0;
         }
@@ -362,9 +362,9 @@ impl Ips {
         // Rating is a combination of the following factors:
         let mut rating = 0.0;
 
-        let ip = node.addr.ip();
-        let degree = *state.degrees.get(&ip).expect(ERR_GET_DEGREE);
-        let eigenvalue = *state.eigenvalues.get(&ip).expect(ERR_GET_EIGENVECTOR);
+        let addr = node.addr;
+        let degree = *state.degrees.get(&addr).expect(ERR_GET_DEGREE);
+        let eigenvalue = *state.eigenvalues.get(&addr).expect(ERR_GET_EIGENVECTOR);
 
         // 1. Degree
         rating += state.degree_factors.scale(degree as f64)
@@ -429,7 +429,7 @@ impl Ips {
 #[cfg(test)]
 mod tests {
     use std::{
-        net::{Ipv4Addr, SocketAddr},
+        net::{IpAddr, Ipv4Addr, SocketAddr},
         str::FromStr,
     };
 
@@ -472,10 +472,22 @@ mod tests {
         let ips_config = IPSConfiguration::default();
         let ips = Ips::new(ips_config);
         let mut degrees = HashMap::new();
-        degrees.insert(IpAddr::from_str("0.0.0.0").unwrap(), 1);
-        degrees.insert(IpAddr::from_str("1.0.0.0").unwrap(), 2);
-        degrees.insert(IpAddr::from_str("2.1.2.1").unwrap(), 3);
-        degrees.insert(IpAddr::from_str("1.0.1.0").unwrap(), 4);
+        degrees.insert(
+            SocketAddr::new(IpAddr::from_str("0.0.0.0").unwrap(), 1234),
+            1,
+        );
+        degrees.insert(
+            SocketAddr::new(IpAddr::from_str("1.0.0.0").unwrap(), 1234),
+            2,
+        );
+        degrees.insert(
+            SocketAddr::new(IpAddr::from_str("2.0.0.0").unwrap(), 1234),
+            3,
+        );
+        degrees.insert(
+            SocketAddr::new(IpAddr::from_str("3.0.0.0").unwrap(), 1234),
+            4,
+        );
 
         assert!(ips.degree_centrality_avg(&degrees) - 2.5 < 0.0001);
     }
@@ -493,17 +505,20 @@ mod tests {
     async fn detect_islands_test_no_islands() {
         let mut graph = Graph::new();
         let mut nodes = Vec::new();
-        let mut ipaddrs = Vec::new();
+        let mut addrs = Vec::new();
         let ips_config = IPSConfiguration::default();
         let ips = Ips::new(ips_config);
 
         for i in 0..10 {
-            let ip = IpAddr::from_str(format!("192.169.0.{i}").as_str()).expect(ERR_PARSE_IP);
+            let addr = SocketAddr::new(
+                IpAddr::from_str(format!("192.169.0.{i}").as_str()).expect(ERR_PARSE_IP),
+                1234,
+            );
 
-            ipaddrs.push(ip);
+            addrs.push(addr);
 
             let node = Node {
-                addr: SocketAddr::new(ip, 1234),
+                addr,
                 ..Default::default()
             };
             nodes.push(node);
@@ -515,7 +530,7 @@ mod tests {
                 if i == j {
                     continue;
                 }
-                graph.insert(Edge::new(nodes[i].addr.ip(), nodes[j].addr.ip()));
+                graph.insert(Edge::new(nodes[i].addr, nodes[j].addr));
                 nodes[i].connections.push(j);
                 nodes[j].connections.push(i);
             }
@@ -530,17 +545,20 @@ mod tests {
     async fn detect_islands_test() {
         let mut graph = Graph::new();
         let mut nodes = Vec::new();
-        let mut ipaddrs = Vec::new();
+        let mut addrs = Vec::new();
         let ips_config = IPSConfiguration::default();
         let ips = Ips::new(ips_config);
 
         for i in 0..10 {
-            let ip = IpAddr::from_str(format!("192.169.0.{i}").as_str()).expect(ERR_PARSE_IP);
+            let addr = SocketAddr::new(
+                IpAddr::from_str(format!("192.169.0.{i}").as_str()).expect(ERR_PARSE_IP),
+                1234,
+            );
 
-            ipaddrs.push(ip);
+            addrs.push(addr);
 
             let node = Node {
-                addr: SocketAddr::new(ip, 1234),
+                addr,
                 ..Default::default()
             };
             nodes.push(node);
@@ -552,7 +570,7 @@ mod tests {
                 if i != j {
                     continue;
                 }
-                graph.insert(Edge::new(nodes[i].addr.ip(), nodes[j].addr.ip()));
+                graph.insert(Edge::new(nodes[i].addr, nodes[j].addr));
 
                 nodes[i].connections.push(j);
                 nodes[j].connections.push(i);

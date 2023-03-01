@@ -1,4 +1,4 @@
-use std::net::IpAddr;
+use std::net::SocketAddr;
 
 use serde::{Deserialize, Serialize};
 
@@ -8,9 +8,9 @@ use crate::Node;
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Peer {
     /// IP address of the node
-    pub ip: IpAddr,
+    pub ip: SocketAddr,
     /// List of peers for the node
-    pub list: Vec<IpAddr>,
+    pub list: Vec<SocketAddr>,
 }
 
 impl Peer {
@@ -28,7 +28,7 @@ impl Peer {
     /// Generate peerlist for given node based on its connections
     pub fn generate_peerlist(node: &Node, nodes: &[Node]) -> Peer {
         let mut peer_list_entry = Peer {
-            ip: node.addr.ip(),
+            ip: node.addr,
             list: Vec::with_capacity(node.connections.len()),
         };
 
@@ -37,7 +37,7 @@ impl Peer {
                 continue;
             }
 
-            peer_list_entry.list.push(nodes[*peer].addr.ip());
+            peer_list_entry.list.push(nodes[*peer].addr);
         }
 
         peer_list_entry
@@ -46,7 +46,7 @@ impl Peer {
 
 #[cfg(test)]
 mod tests {
-    use std::net::{Ipv4Addr, SocketAddr};
+    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
     use super::*;
 
@@ -72,7 +72,7 @@ mod tests {
 
         let peer = Peer::generate_peerlist(nodes.get(0).unwrap(), &nodes);
         assert_eq!(peer.list.len(), 2);
-        assert!(peer.list.contains(&nodes.get(1).unwrap().addr.ip()));
-        assert!(peer.list.contains(&nodes.get(2).unwrap().addr.ip()));
+        assert!(peer.list.contains(&nodes.get(1).unwrap().addr));
+        assert!(peer.list.contains(&nodes.get(2).unwrap().addr));
     }
 }
