@@ -47,7 +47,7 @@ The generated output contains processed data that our renderer can directly use.
 ```
 Explaination of the node fields:
 
-- `addr`: the address as dotted quad, wit port number
+- `addr`: the address as a dotted quad, with port number
 - `betweenness`: the computed betweenness
 - `closeness`: the computed closeness
 - `cell_position`: corresponds to the z-coordinate positioning of a given node.
