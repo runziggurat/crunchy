@@ -74,6 +74,23 @@ impl Ips {
 
     /// Generate peer list - main function with The Algorithm
     pub async fn generate(&mut self, state: &CrunchyState) -> Vec<Peer> {
+        // Sanity check that each node is really connected to its peers and the peers also
+        // have the node in their connections.
+        for (idx, node) in state.nodes.iter().enumerate() {
+            if node.connections.contains(&idx) {
+                println!("{} is connected to itself.", node.addr);
+            }
+
+            for peer in &node.connections {
+                if !state.nodes[*peer].connections.contains(&idx) {
+                    println!(
+                        "{} is not connected to {} but {} have a connection to it",
+                        node.addr, state.nodes[*peer].addr, node.addr
+                    );
+                }
+            }
+        }
+
         // This is the working set of factors.
         //TODO(asmie): add .clone() to the initial_state when it will be used and remove creating new vector
         // Now we're creating a new vector because MCDA code operates not on state but on the peerlist
@@ -141,12 +158,9 @@ impl Ips {
             // that level. That could be bad if graph's vertexes have very high (or low) degrees
             // and therefore, delta is very high (or low) too. But until we have some better idea
             // this one is the best we can do to keep up with the graph.
-            let desired_degree = ((degree_avg + degree as f64) / 2.0).round() as u32;
+            let desired_degree = degree_avg.round() as u32;
 
             // 3 - Calculate how many peers to add or delete from peerlist
-            //TODO(asmie): when graph has been visualized it occured that it has many nodes with
-            // self connections. This is not good as it takes place in peerlist and gives no
-            // benefit.
             let mut peers_to_delete_count = if desired_degree < degree {
                 degree.saturating_sub(desired_degree)
             } else {
@@ -176,6 +190,22 @@ impl Ips {
                 peers_to_add_count = self.config.change_no_more;
             }
 
+            // Remove potential peers identified to have too high degree and have already
+            // been processed by the algorithm
+            peer_ratings.retain(|x| {
+                final_state.nodes[x.index].connections.len()
+                    < working_state.nodes[x.index].connections.len()
+            });
+
+            // Remove nodes that reached max conn limit
+            peer_ratings.retain(|x| {
+                final_state.nodes[x.index]
+                    .connections
+                    .len()
+                    .abs_diff(working_state.nodes[x.index].connections.len())
+                    <= self.config.change_no_more as usize
+            });
+
             // Remove node itself to ensure we don't add it to peerlist
             peer_ratings.retain(|x| x.index != node_idx);
 
@@ -200,11 +230,21 @@ impl Ips {
                 // Sort peers by rating
                 peer_ratings.sort_by(|a, b| b.rating.partial_cmp(&a.rating).unwrap());
 
-                // Remove peers that are already in peerlist
-                peer_ratings.retain(|x| !curr_peer_ratings.contains(x));
-
                 let mut candidates = peer_ratings
                     .iter()
+                    .filter(|x| {
+                        // Check if we're not adding a node that is already connected to us
+                        if final_state.nodes[x.index].connections.contains(&node_idx) {
+                            return false;
+                        }
+
+                        // Check if we're not adding a node that is already connected to us
+                        if final_state.nodes[node_idx].connections.contains(&x.index) {
+                            return false;
+                        }
+
+                        true
+                    })
                     .take((peers_to_add_count * 2) as usize) // Take twice as many candidates
                     .copied()
                     .collect::<Vec<_>>();
@@ -222,6 +262,7 @@ impl Ips {
 
                 for peer in candidates.iter().take(peers_to_add_count as usize) {
                     curr_peer_ratings.push(*peer);
+                    final_state.nodes[peer.index].connections.push(node_idx);
                 }
 
                 // Write new node set
@@ -230,6 +271,14 @@ impl Ips {
                     .map(|x| x.index)
                     .collect::<Vec<usize>>()
                     .to_vec();
+
+                // Eliminate duplicates, the node itself and shrink vector
+                final_state.nodes[node_idx].connections.sort();
+                final_state.nodes[node_idx].connections.dedup();
+                final_state.nodes[node_idx]
+                    .connections
+                    .retain(|x| *x != node_idx);
+                final_state.nodes[node_idx].connections.shrink_to_fit();
             }
         }
 
