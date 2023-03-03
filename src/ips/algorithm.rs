@@ -82,7 +82,7 @@ impl Ips {
         let mut final_state = working_state.clone();
 
         let initial_statistics = generate_statistics(&working_state);
-        println!("Statistics for initial network:");
+        println!("Statistics for the initial network:");
         print_statistics(&initial_statistics);
 
         // Phase 1: Security checks
@@ -236,7 +236,7 @@ impl Ips {
         final_state = self.generate_state(&final_state.nodes);
 
         let final_statistics = generate_statistics(&final_state);
-        println!("Statistics for final network:");
+        println!("Statistics for the final network:");
         print_statistics(&final_statistics);
 
         println!("Comparing if network parameters got changed on plus or minus:");

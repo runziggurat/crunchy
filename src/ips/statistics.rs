@@ -82,7 +82,7 @@ pub fn generate_statistics(state: &IpsState) -> Statistics {
 }
 
 pub fn print_statistics(stats: &Statistics) {
-    println!("----------------------------------------\n");
+    println!("----------------------------------------");
     println!("Nodes count: {}", stats.nodes_count);
     println!("\nDegree measures:");
     println!("Average: {}", stats.degree_average);
@@ -129,7 +129,7 @@ pub fn print_statistics(stats: &Statistics) {
 
 pub fn print_statistics_delta(stats: &Statistics, stats_original: &Statistics) {
     println!("Deltas for given statistics pair:");
-    println!("----------------------------------------\n");
+    println!("----------------------------------------");
     println!(
         "Nodes count: {}",
         stats.nodes_count - stats_original.nodes_count
