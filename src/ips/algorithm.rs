@@ -74,7 +74,7 @@ impl Ips {
 
     /// Generate peer list - main function with The Algorithm
     pub async fn generate(&mut self, state: &CrunchyState) -> Vec<Peer> {
-        // Sanity check that each node is really connected to it's peers and the peers also
+        // Sanity check that each node is really connected to its peers and the peers also
         // have the node in their connections.
         for (idx, node) in state.nodes.iter().enumerate() {
             if node.connections.contains(&idx) {
