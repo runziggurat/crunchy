@@ -100,56 +100,60 @@ Median: 1.0408706699768735
 Min: 0.009224464066643153, max: 1.338099762915545, delta: 1.3288752988489019
 ----------------------------------------
 
+
 Statistics for the final network:
 ----------------------------------------
 Nodes count: 2472
 
 Degree measures:
-Average: 350.2698220064725
-Median: 363
-Min: 5, max: 472, delta: 467
+Average: 349.4037216828479
+Median: 364
+Min: 6, max: 464, delta: 458
 
 Betweenness measures:
-Average: 0.00020269986625605759
-Median: 0.00021142414089966258
+Average: 0.000202632404811459
+Median: 0.0002134929923408508
 Min: 0.000000011402470586985047, max: 0.0005637115400558378, delta: 0.0005637001375852508
 
 Closeness measures:
-Average: 2.000959540368865
-Median: 1.999216689819378
+Average: 2.00074154309123
+Median: 1.999510851620058
 Min: 1.996533523649682, max: 2.995343149165006, delta: 0.9988096255153243
 
 Eigenvector measures:
-Average: 1.0000000000000013
-Median: 1.0369942301865014
-Min: 0.015083344270596788, max: 1.3408045956582166, delta: 1.3257212513876198
+Average: 0.9999999999999986
+Median: 1.040565271198553
+Min: 0.01793917429148585, max: 1.319358717826537, delta: 1.301419543535051
 ----------------------------------------
 
+Comparing if network parameters got changed on plus or minus:
 Deltas for given statistics pair:
 ----------------------------------------
 Nodes count: 0
 
 Degree measures:
-Average: 2.4296116504854695
-Median: 1
-Min: 1, max: 4, delta: 3
+Average: 1.563511326860862
+Median: 2
+Min: 2, max: -4, delta: -6
 
 Betweenness measures:
-Average: 0.0000000044613489560356
-Median: -0.0000017355446652003617
+Average: -0.00000006300009564255845
+Median: 0.0000003333067759878441
 Min: 0, max: 0, delta: 0
 
 Closeness measures:
-Average: 0.000030119448445109498
-Median: 0.0009182323970426953
+Average: -0.00018787782919016394
+Median: 0.001212394197722677
 Min: 0, max: 0, delta: 0
 
 Eigenvector measures:
-Average: -0.0000000000000011102230246251565
-Median: -0.0038764397903721104
-Min: 0.005858880203953636, max: 0.0027048327426715257, delta: -0.0031540474612821168
+Average: -0.000000000000003885780586188048
+Median: -0.00030539877832058693
+Min: 0.008714710224842699, max: -0.0187410450890082, delta: -0.027455755313850805
 ----------------------------------------
 ```
+
+Output can contain also information about some problems found, like nodes with assymetric connections, or nodes connected to themselves.
 
 Example:
 ```
