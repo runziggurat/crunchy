@@ -72,12 +72,36 @@ Options:
   -V, --version                        Print version
 ```
 
-Running using command line prints also the parameters of the network before and IPS. Parameters are printed in the following format:
+The command line also prints the network parameters before and after applying the IPS algorithm output. Parameters are printed in the following format:
 
 ```
-Statistics for final network:
+Statistics for the initial network:
+----------------------------------------
+Nodes count: 2472
+
+Degree measures:
+Average: 347.84021035598704
+Median: 362
+Min: 4, max: 468, delta: 464
+
+Betweenness measures:
+Average: 0.00020269540490710155
+Median: 0.00021315968556486295
+Min: 0.000000011402470586985047, max: 0.0005637115400558378, delta: 0.0005637001375852508
+
+Closeness measures:
+Average: 2.00092942092042
+Median: 1.9982984574223353
+Min: 1.996533523649682, max: 2.995343149165006, delta: 0.9988096255153243
+
+Eigenvector measures:
+Average: 1.0000000000000024
+Median: 1.0408706699768735
+Min: 0.009224464066643153, max: 1.338099762915545, delta: 1.3288752988489019
 ----------------------------------------
 
+Statistics for the final network:
+----------------------------------------
 Nodes count: 2472
 
 Degree measures:
@@ -99,6 +123,31 @@ Eigenvector measures:
 Average: 1.0000000000000013
 Median: 1.0369942301865014
 Min: 0.015083344270596788, max: 1.3408045956582166, delta: 1.3257212513876198
+----------------------------------------
+
+Deltas for given statistics pair:
+----------------------------------------
+Nodes count: 0
+
+Degree measures:
+Average: 2.4296116504854695
+Median: 1
+Min: 1, max: 4, delta: 3
+
+Betweenness measures:
+Average: 0.0000000044613489560356
+Median: -0.0000017355446652003617
+Min: 0, max: 0, delta: 0
+
+Closeness measures:
+Average: 0.000030119448445109498
+Median: 0.0009182323970426953
+Min: 0, max: 0, delta: 0
+
+Eigenvector measures:
+Average: -0.0000000000000011102230246251565
+Median: -0.0038764397903721104
+Min: 0.005858880203953636, max: 0.0027048327426715257, delta: -0.0031540474612821168
 ----------------------------------------
 ```
 
