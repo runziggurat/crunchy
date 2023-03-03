@@ -22,6 +22,9 @@ use crate::{
         graph_utils::{construct_graph, find_bridges},
         normalization::NormalizationFactors,
         peer::Peer,
+        statistics::{
+            degree_centrality_avg, generate_statistics, print_statistics, print_statistics_delta,
+        },
     },
     CrunchyState, Node,
 };
@@ -34,7 +37,7 @@ pub struct Ips {
 
 /// State structure containing all the information about the graph and nodes at some point
 #[derive(Default, Clone)]
-struct IpsState {
+pub struct IpsState {
     pub nodes: Vec<Node>,
     pub peer_list: Vec<Peer>,
     pub degrees: HashMap<SocketAddr, u32>,
@@ -78,6 +81,10 @@ impl Ips {
         let working_state = self.generate_state(&state.nodes);
         let mut final_state = working_state.clone();
 
+        let initial_statistics = generate_statistics(&working_state);
+        println!("Statistics for initial network:");
+        print_statistics(&initial_statistics);
+
         // Phase 1: Security checks
         //TODO(asmie): Detecting islands, bridges and hot nodes. Checking if there are any nodes that upon removal
         // would cause the graph to be disconnected. If there are any, there is a need to create
@@ -90,7 +97,7 @@ impl Ips {
         let _islands = self.detect_islands(&working_state.nodes);
 
         // Now take the current params
-        let degree_avg = self.degree_centrality_avg(&working_state.degrees);
+        let degree_avg = degree_centrality_avg(&working_state.degrees);
 
         // Detect possible bridges
         let bridges = find_bridges(
@@ -121,7 +128,7 @@ impl Ips {
             }
 
             // Load peerlist with current connections (we don't want to change everything)
-            for peer in &working_state.nodes[node_idx].connections {
+            for peer in &final_state.nodes[node_idx].connections {
                 // Remember current peer ratings
                 curr_peer_ratings.push(peer_ratings[*peer]);
             }
@@ -226,8 +233,14 @@ impl Ips {
             }
         }
 
-        // TODO(asmie): recalculate and compare factors to check if network is going better
         final_state = self.generate_state(&final_state.nodes);
+
+        let final_statistics = generate_statistics(&final_state);
+        println!("Statistics for final network:");
+        print_statistics(&final_statistics);
+
+        println!("Comparing if network parameters got changed on plus or minus:");
+        print_statistics_delta(&final_statistics, &initial_statistics);
 
         final_state.peer_list
     }
@@ -348,14 +361,6 @@ impl Ips {
         }
     }
 
-    fn degree_centrality_avg(&self, degrees: &HashMap<SocketAddr, u32>) -> f64 {
-        if degrees.is_empty() {
-            return 0.0;
-        }
-
-        (degrees.iter().fold(0, |acc, (_, &degree)| acc + degree) as f64) / degrees.len() as f64
-    }
-
     fn rate_node(&self, node: &Node, state: &IpsState) -> f64 {
         // Calculate rating for node (if min == max for normalization factors then rating is
         // not increased for that factor as lerp() returns 0.0).
@@ -465,40 +470,6 @@ mod tests {
         let state = ips.generate_state(&nodes);
 
         assert_eq!(ips.rate_node(nodes.get(0).unwrap(), &state), 10.0);
-    }
-
-    #[test]
-    fn degree_centrality_avg_test() {
-        let ips_config = IPSConfiguration::default();
-        let ips = Ips::new(ips_config);
-        let mut degrees = HashMap::new();
-        degrees.insert(
-            SocketAddr::new(IpAddr::from_str("0.0.0.0").unwrap(), 1234),
-            1,
-        );
-        degrees.insert(
-            SocketAddr::new(IpAddr::from_str("1.0.0.0").unwrap(), 1234),
-            2,
-        );
-        degrees.insert(
-            SocketAddr::new(IpAddr::from_str("2.0.0.0").unwrap(), 1234),
-            3,
-        );
-        degrees.insert(
-            SocketAddr::new(IpAddr::from_str("3.0.0.0").unwrap(), 1234),
-            4,
-        );
-
-        assert!(ips.degree_centrality_avg(&degrees) - 2.5 < 0.0001);
-    }
-
-    #[test]
-    fn degree_centrality_avg_empty_test() {
-        let ips_config = IPSConfiguration::default();
-        let ips = Ips::new(ips_config);
-        let degrees = HashMap::new();
-
-        assert_eq!(ips.degree_centrality_avg(&degrees), 0.0);
     }
 
     #[tokio::test]
