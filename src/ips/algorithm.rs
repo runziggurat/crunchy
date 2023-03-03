@@ -78,10 +78,7 @@ impl Ips {
         // have the node in their connections.
         for (idx, node) in state.nodes.iter().enumerate() {
             if node.connections.contains(&idx) {
-                println!(
-                    "{} is connected to itself.",
-                    node.addr
-                );
+                println!("{} is connected to itself.", node.addr);
             }
 
             for peer in &node.connections {
@@ -196,9 +193,7 @@ impl Ips {
             // Remove potential peers identified to have too high degree and have already
             // been processed by the algorithm
             peer_ratings.retain(|x| {
-                final_state.nodes[x.index]
-                    .connections
-                    .len()
+                final_state.nodes[x.index].connections.len()
                     < working_state.nodes[x.index].connections.len()
             });
 
@@ -239,18 +234,12 @@ impl Ips {
                     .iter()
                     .filter(|x| {
                         // Check if we're not adding a node that is already connected to us
-                        if final_state.nodes[x.index]
-                            .connections
-                            .contains(&node_idx)
-                        {
+                        if final_state.nodes[x.index].connections.contains(&node_idx) {
                             return false;
                         }
 
                         // Check if we're not adding a node that is already connected to us
-                        if final_state.nodes[node_idx]
-                            .connections
-                            .contains(&x.index)
-                        {
+                        if final_state.nodes[node_idx].connections.contains(&x.index) {
                             return false;
                         }
 
@@ -286,7 +275,9 @@ impl Ips {
                 // Eliminate duplicates, the node itself and shrink vector
                 final_state.nodes[node_idx].connections.sort();
                 final_state.nodes[node_idx].connections.dedup();
-                final_state.nodes[node_idx].connections.retain(|x| *x != node_idx);
+                final_state.nodes[node_idx]
+                    .connections
+                    .retain(|x| *x != node_idx);
                 final_state.nodes[node_idx].connections.shrink_to_fit();
             }
         }
