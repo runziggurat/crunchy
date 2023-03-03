@@ -72,6 +72,36 @@ Options:
   -V, --version                        Print version
 ```
 
+Running using command line prints also the parameters of the network before and IPS. Parameters are printed in the following format:
+
+```
+Statistics for final network:
+----------------------------------------
+
+Nodes count: 2472
+
+Degree measures:
+Average: 350.2698220064725
+Median: 363
+Min: 5, max: 472, delta: 467
+
+Betweenness measures:
+Average: 0.00020269986625605759
+Median: 0.00021142414089966258
+Min: 0.000000011402470586985047, max: 0.0005637115400558378, delta: 0.0005637001375852508
+
+Closeness measures:
+Average: 2.000959540368865
+Median: 1.999216689819378
+Min: 1.996533523649682, max: 2.995343149165006, delta: 0.9988096255153243
+
+Eigenvector measures:
+Average: 1.0000000000000013
+Median: 1.0369942301865014
+Min: 0.015083344270596788, max: 1.3408045956582166, delta: 1.3257212513876198
+----------------------------------------
+```
+
 Example:
 ```
 cargo run --release -- -i testdata/sample.json -o testdata/state.json -g testdata/geoip-cache.json

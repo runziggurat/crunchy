@@ -5,7 +5,7 @@ use std::{
 
 use spectre::{edge::Edge, graph::Graph};
 
-use crate::{ips::utils::median, Node};
+use crate::{ips::statistics::median, Node};
 
 /// Find bridges in graph.
 /// Bridges are edges that if removed disconnects the graph but here we try to find something
