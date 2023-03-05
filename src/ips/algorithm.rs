@@ -92,9 +92,6 @@ impl Ips {
         }
 
         // This is the working set of factors.
-        //TODO(asmie): add .clone() to the initial_state when it will be used and remove creating new vector
-        // Now we're creating a new vector because MCDA code operates not on state but on the peerlist
-        // and if we left here peerlist from the state, it would be doubled by MCDA.
         let working_state = self.generate_state(&state.nodes);
         let mut final_state = working_state.clone();
 
