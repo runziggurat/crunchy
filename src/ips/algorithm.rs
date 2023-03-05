@@ -108,10 +108,24 @@ impl Ips {
         // new connections between the possible islands.
 
         // Detect islands
-        // To reconsider if islands should be merged prior to any other computations or not.
-        // IMHO, if there are islands they can influence on the results of the computations.
-        // TODO(asmie): Merging islands is not implemented yet.
-        let _islands = self.detect_islands(&working_state.nodes);
+        let islands = self.detect_islands(&working_state.nodes);
+        if islands.len() > 1 {
+            // Check if we're talking about massive islands or just a few nodes
+            let mut massive_islands_count = 0;
+            for island in &islands {
+                // Check if any island is more than 10% of the network
+                if island.len() > &working_state.nodes.len() * 10 / 100 {
+                    massive_islands_count += 1;
+                }
+            }
+
+            if massive_islands_count > 1 {
+                // We need to break here. Merging big islands can be a very complex task especially
+                // when they started to live their lives and created their own blockchain history
+                // after separation.
+                panic!("There are more than one massive island in the network. It is not possible to merge them automatically.");
+            }
+        }
 
         // Now take the current params
         let degree_avg = degree_centrality_avg(&working_state.degrees);
