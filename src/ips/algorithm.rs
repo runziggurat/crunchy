@@ -19,7 +19,7 @@ use crate::{
     config::GeoLocationMode,
     ips::{
         config::IPSConfiguration,
-        graph_utils::{construct_graph, find_bridges},
+        graph_utils::{construct_graph, find_bridges, find_lowest_betweenness, remove_node},
         normalization::NormalizationFactors,
         peer::Peer,
         statistics::{
@@ -67,6 +67,9 @@ const NORMALIZE_1_3: f64 = NORMALIZE_TO_VALUE * 1.0 / 3.0;
 const ERR_GET_DEGREE: &str = "failed to get degree";
 const ERR_GET_EIGENVECTOR: &str = "failed to get eigenvector";
 
+const MASSIVE_ISLAND_PERCENTAGE: f64 = 0.1;
+const NODES_TO_BE_REMOVED_PERCENTAGE: f64 = 0.1;
+
 impl Ips {
     pub fn new(config: IPSConfiguration) -> Ips {
         Ips { config }
@@ -92,7 +95,7 @@ impl Ips {
         }
 
         // This is the working set of factors.
-        let working_state = self.generate_state(&state.nodes);
+        let mut working_state = self.generate_state(&state.nodes, false);
         let mut final_state = working_state.clone();
 
         let initial_statistics = generate_statistics(&working_state);
@@ -110,8 +113,11 @@ impl Ips {
             // Check if we're talking about massive islands or just a few nodes
             let mut massive_islands_count = 0;
             for island in &islands {
-                // Check if any island is more than 10% of the network
-                if island.len() > &working_state.nodes.len() * 10 / 100 {
+                // Check if any island is more than some % of the network
+                if island.len()
+                    > (working_state.nodes.len() as f64 * MASSIVE_ISLAND_PERCENTAGE).round()
+                        as usize
+                {
                     massive_islands_count += 1;
                 }
             }
@@ -122,6 +128,11 @@ impl Ips {
                 // after separation.
                 panic!("There are more than one massive island in the network. It is not possible to merge them automatically.");
             }
+        }
+
+        if !self.check_and_fix_integrity_upon_removal(&mut working_state) {
+            println!("There were hot nodes that can be dangerous for the network! Recalculating graph...");
+            working_state = self.generate_state(&working_state.nodes, true);
         }
 
         // Now take the current params
@@ -293,7 +304,7 @@ impl Ips {
             }
         }
 
-        final_state = self.generate_state(&final_state.nodes);
+        final_state = self.generate_state(&final_state.nodes, true);
 
         let final_statistics = generate_statistics(&final_state);
         println!("Statistics for the final network:");
@@ -307,22 +318,90 @@ impl Ips {
 
     // Helper functions
 
+    /// Check integrity of the network after removing some percent of the nodes with highest
+    /// betweenness factor.
+    /// Return true if integrity is preserved, false otherwise. If false is returned the caller
+    /// should try to regenerate the network.
+    fn check_and_fix_integrity_upon_removal(&self, state: &mut IpsState) -> bool {
+        let mut high_betweenness = state
+            .nodes
+            .iter()
+            .map(|x| x.betweenness)
+            .collect::<Vec<f64>>();
+
+        high_betweenness.sort_by(|a, b| b.partial_cmp(a).unwrap());
+
+        let mut test_state = state.clone();
+        let mut removed_idx = Vec::new();
+
+        // Take some % of nodes with highest betweenness
+        let nodes_to_remove =
+            (high_betweenness.len() as f64 * NODES_TO_BE_REMOVED_PERCENTAGE).round() as usize;
+        for b in high_betweenness.iter().take(nodes_to_remove) {
+            let idx = test_state
+                .nodes
+                .iter()
+                .position(|x| x.betweenness == *b)
+                .unwrap();
+            remove_node(&mut test_state.nodes, idx);
+            removed_idx.push(idx);
+        }
+
+        let islands = self.detect_islands(&test_state.nodes);
+        let mut massive_island = 0;
+        if islands.len() > 1 {
+            // Consider network as not integral if there are more than 1 islands with at least
+            // some % of nodes. Don't consider islands with less than some % of nodes as they would
+            // probably have no meaning for the network itself.
+            for island in islands.iter() {
+                if island.len()
+                    > (test_state.nodes.len() as f64 * MASSIVE_ISLAND_PERCENTAGE).round() as usize
+                {
+                    massive_island += 1;
+                }
+            }
+        }
+
+        if massive_island > 1 {
+            // If we're able to fragment the network into more than 1 massive islands then try to fix it
+            // by adding new connections between highest betweenness node's neighbors.
+            for node_idx in removed_idx {
+                let mut conns = state.nodes[node_idx].connections.clone();
+                let node_a_idx = find_lowest_betweenness(&conns, state);
+                // Remove node_a_idx from conns
+                conns.retain(|x| *x != node_a_idx);
+                let node_b_idx = find_lowest_betweenness(&conns, state);
+
+                state.nodes[node_a_idx].connections.push(node_b_idx);
+                state.nodes[node_b_idx].connections.push(node_a_idx);
+            }
+            return false;
+        }
+
+        true
+    }
+
     /// Generate state for IPS
-    fn generate_state(&self, nodes: &[Node]) -> IpsState {
+    /// If generate_full is true, then it will generate full state for IPS. If false then
+    /// it will not re-run betweenness and closeness centrality calculations.
+    fn generate_state(&self, nodes: &[Node], generate_full: bool) -> IpsState {
         let mut ips_state = IpsState {
             nodes: nodes.to_vec(),
             ..Default::default()
         };
 
         let mut graph = construct_graph(nodes);
-        let betweenness = graph.betweenness_centrality();
-        let closeness = graph.closeness_centrality();
 
-        // Recalculate factors with new graph
-        for node in ips_state.nodes.iter_mut() {
-            let addr = node.addr;
-            node.betweenness = *betweenness.get(&addr).expect("can't fetch betweenness");
-            node.closeness = *closeness.get(&addr).expect("can't fetch closeness");
+        if generate_full {
+            let betweenness = graph.betweenness_centrality();
+            let closeness = graph.closeness_centrality();
+
+            // Recalculate factors with new graph
+            for node in ips_state.nodes.iter_mut() {
+                let addr = node.addr;
+                node.betweenness = *betweenness.get(&addr).expect("can't fetch betweenness");
+                node.closeness = *closeness.get(&addr).expect("can't fetch closeness");
+            }
         }
 
         ips_state.degrees = graph.degree_centrality();
@@ -527,7 +606,7 @@ mod tests {
             },
         ];
 
-        let state = ips.generate_state(&nodes);
+        let state = ips.generate_state(&nodes, true);
 
         assert_eq!(ips.rate_node(nodes.get(0).unwrap(), &state), 10.0);
     }

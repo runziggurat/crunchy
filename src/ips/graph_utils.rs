@@ -5,7 +5,10 @@ use std::{
 
 use spectre::{edge::Edge, graph::Graph};
 
-use crate::{ips::statistics::median, Node};
+use crate::{
+    ips::{algorithm::IpsState, statistics::median},
+    Node,
+};
 
 /// Find bridges in graph.
 /// Bridges are edges that if removed disconnects the graph but here we try to find something
@@ -82,6 +85,42 @@ pub fn construct_graph(nodes: &[Node]) -> Graph<SocketAddr> {
         }
     }
     graph
+}
+
+/// Removes node from the state and updates all indices in the peerlist
+pub fn remove_node(nodes: &mut Vec<Node>, node_idx: usize) {
+    let node = nodes[node_idx].clone();
+    for peer_idx in node.connections.iter() {
+        nodes[*peer_idx].connections.retain(|x| *x != node_idx);
+    }
+
+    nodes.retain(|x| x.addr != node.addr);
+
+    // Now the tricky part - we need to update all indices in the peerlist
+    // of all nodes that have higher index than the one we removed
+    for node in nodes.iter_mut() {
+        for peer_idx in node.connections.iter_mut() {
+            if *peer_idx > node_idx {
+                *peer_idx -= 1;
+            }
+        }
+    }
+}
+
+/// Find node with lowest betweenness centrality in the provided nodes indexes.
+pub fn find_lowest_betweenness(nodes_idx: &[usize], state: &IpsState) -> usize {
+    let mut lowest_betweenness = f64::MAX;
+    let mut lowest_betweenness_idx = 0;
+
+    for idx in nodes_idx.iter() {
+        let betweenness = state.nodes[*idx].betweenness;
+        if betweenness < lowest_betweenness {
+            lowest_betweenness = betweenness;
+            lowest_betweenness_idx = *idx;
+        }
+    }
+
+    lowest_betweenness_idx
 }
 
 #[cfg(test)]
