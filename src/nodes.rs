@@ -11,7 +11,7 @@ const HISTOGRAM_COUNTS: usize = 256;
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct HistogramSummary {
-    /// Minimum value of a factor.
+    /// Name of the histogram
     pub label: String,
     /// Counts for each slot
     pub counts: Vec<usize>,
