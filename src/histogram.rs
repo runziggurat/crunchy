@@ -1,7 +1,5 @@
-
 /// Structure used to create a distribution of node
 /// centrality values for use in a displayed histogram
-
 
 #[derive(Default, Clone)]
 pub struct Histogram {
@@ -13,9 +11,7 @@ pub struct Histogram {
     pub values: Vec<f64>,
 }
 
-
 impl Histogram {
-
     pub fn default() -> Self {
         Self {
             min: f64::MAX,
@@ -59,7 +55,6 @@ impl Histogram {
 
         (counts, max_count)
     }
-
 }
 
 #[cfg(test)]
@@ -68,7 +63,7 @@ mod tests {
 
     #[test]
     fn histogram_test() {
-        let mut histogram = Histogram{
+        let mut histogram = Histogram {
             ..Histogram::default()
         };
 
@@ -95,7 +90,7 @@ mod tests {
 
     #[test]
     fn histogram_zero_delta_test() {
-        let mut histogram = Histogram{
+        let mut histogram = Histogram {
             ..Histogram::default()
         };
         let (counts, max_count) = histogram.compute(256);

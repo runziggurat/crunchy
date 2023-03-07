@@ -1,8 +1,8 @@
 mod config;
 mod geoip_cache;
+mod histogram;
 mod ips;
 mod nodes;
-mod histogram;
 
 use std::{fs, path::PathBuf, time::Instant};
 
@@ -14,9 +14,8 @@ use crate::{
     config::CrunchyConfiguration,
     geoip_cache::GeoIPCache,
     ips::algorithm::Ips,
-    nodes::{create_nodes, create_histograms, Node, HistogramSummary},
+    nodes::{create_histograms, create_nodes, HistogramSummary, Node},
 };
-
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct CrunchyState {
@@ -64,10 +63,7 @@ async fn write_state(config: &CrunchyConfiguration) {
     )
     .await;
 
-    let histograms = create_histograms(
-        &nodes,
-    )
-    .await;
+    let histograms = create_histograms(&nodes).await;
 
     let state = CrunchyState {
         elapsed: elapsed.as_secs_f64(),

@@ -1,12 +1,11 @@
-
 use std::{collections::HashMap, net::SocketAddr};
 
 use serde::{Deserialize, Serialize};
 use spectre::{edge::Edge, graph::Graph};
 use ziggurat_core_crawler::summary::NodesIndices;
 use ziggurat_core_geoip::geoip::GeoInfo;
-use crate::histogram::Histogram;
-use crate::geoip_cache::GeoIPCache;
+
+use crate::{geoip_cache::GeoIPCache, histogram::Histogram};
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct HistogramSummary {
@@ -17,8 +16,6 @@ pub struct HistogramSummary {
     /// Maximum count for a single slot
     pub max_count: usize,
 }
-
-
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Node {
@@ -37,7 +34,6 @@ pub struct Node {
     /// used for latitude, longitude, city, country
     pub geolocation: Option<GeoInfo>,
 }
-
 
 // Implemented it just to make it easier to create a default node for testing
 impl Default for Node {
@@ -146,22 +142,19 @@ pub async fn create_nodes(
     nodes
 }
 
-pub async fn create_histograms(
-    nodes: &Vec<Node>,
-) -> Vec<HistogramSummary> {
-
+pub async fn create_histograms(nodes: &[Node]) -> Vec<HistogramSummary> {
     const NUM_COUNTS: usize = 256;
 
     // Betweenness
-    let mut histogram_b = Histogram{
+    let mut histogram_b = Histogram {
         ..Histogram::default()
     };
     // Closeness
-    let mut histogram_c = Histogram{
+    let mut histogram_c = Histogram {
         ..Histogram::default()
     };
     // Degree
-    let mut histogram_d = Histogram{
+    let mut histogram_d = Histogram {
         ..Histogram::default()
     };
 
@@ -193,4 +186,3 @@ pub async fn create_histograms(
 
     histograms
 }
-
