@@ -9,7 +9,6 @@ use crate::{geoip_cache::GeoIPCache, histogram::Histogram};
 
 const HISTOGRAM_COUNTS: usize = 256;
 
-
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct HistogramSummary {
     /// Minimum value of a factor.
@@ -146,7 +145,6 @@ pub async fn create_nodes(
 }
 
 pub async fn create_histograms(nodes: &[Node]) -> Vec<HistogramSummary> {
-
     // Betweenness
     let mut histogram_b = Histogram {
         ..Histogram::default()
