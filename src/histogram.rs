@@ -130,5 +130,4 @@ mod tests {
         assert_eq!(counts.len(), 0);
         assert_eq!(max_count, 0);
     }
-
 }
