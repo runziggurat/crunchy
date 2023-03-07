@@ -33,20 +33,24 @@ impl Histogram {
                 self.max = *value;
             }
         }
+
         let delta = self.max - self.min;
         let mut counts = vec![0; num_counts];
         let mut max_count: usize = 0;
+
         if delta == 0.0 {
             return (counts, max_count);
         }
+
         for value in self.values.iter() {
             let part = (*value - self.min) / delta;
-            let mut slot = (part * 256.0).floor() as usize;
+            let mut slot = (part * num_counts as f64).floor() as usize;
             if slot >= num_counts {
                 slot = num_counts - 1;
             }
             counts[slot] += 1;
         }
+
         for count in counts.iter() {
             if *count > max_count {
                 max_count = *count;

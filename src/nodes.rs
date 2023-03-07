@@ -7,6 +7,9 @@ use ziggurat_core_geoip::geoip::GeoInfo;
 
 use crate::{geoip_cache::GeoIPCache, histogram::Histogram};
 
+const HISTOGRAM_COUNTS: usize = 256;
+
+
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct HistogramSummary {
     /// Minimum value of a factor.
@@ -143,16 +146,17 @@ pub async fn create_nodes(
 }
 
 pub async fn create_histograms(nodes: &[Node]) -> Vec<HistogramSummary> {
-    const NUM_COUNTS: usize = 256;
 
     // Betweenness
     let mut histogram_b = Histogram {
         ..Histogram::default()
     };
+
     // Closeness
     let mut histogram_c = Histogram {
         ..Histogram::default()
     };
+
     // Degree
     let mut histogram_d = Histogram {
         ..Histogram::default()
@@ -165,19 +169,21 @@ pub async fn create_histograms(nodes: &[Node]) -> Vec<HistogramSummary> {
     }
 
     let mut histograms = Vec::new();
-    let (counts, max_count) = histogram_b.compute(NUM_COUNTS);
+    let (counts, max_count) = histogram_b.compute(HISTOGRAM_COUNTS);
     histograms.push(HistogramSummary {
         label: "betweenness".to_owned(),
         counts,
         max_count,
     });
-    let (counts, max_count) = histogram_c.compute(NUM_COUNTS);
+
+    let (counts, max_count) = histogram_c.compute(HISTOGRAM_COUNTS);
     histograms.push(HistogramSummary {
         label: "closeness".to_owned(),
         counts,
         max_count,
     });
-    let (counts, max_count) = histogram_d.compute(NUM_COUNTS);
+
+    let (counts, max_count) = histogram_d.compute(HISTOGRAM_COUNTS);
     histograms.push(HistogramSummary {
         label: "degree".to_owned(),
         counts,
