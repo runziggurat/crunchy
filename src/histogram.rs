@@ -20,10 +20,13 @@ impl Histogram {
         }
     }
 
+    // Store a single value
     pub fn add(&mut self, value: f64) {
         self.values.push(value);
     }
 
+    // Compute the histogram tables, returning that table along
+    // with the value of the maximum count in a single slot.
     pub fn compute(&mut self, num_counts: usize) -> (Vec<usize>, usize) {
         for value in self.values.iter() {
             if *value < self.min {
