@@ -41,7 +41,7 @@ impl Histogram {
         let mut counts = vec![0; num_counts];
         let mut max_count: usize = 0;
 
-        if delta == 0.0 {
+        if delta == 0.0 || num_counts == 0 {
             return (counts, max_count);
         }
 
@@ -115,4 +115,20 @@ mod tests {
         assert_eq!(counts[116], 0);
         assert_eq!(counts[216], 0);
     }
+
+    #[test]
+    fn histogram_zero_test() {
+        let mut histogram = Histogram {
+            ..Histogram::default()
+        };
+
+        histogram.add(1.6);
+        histogram.add(2.6);
+        histogram.add(3.6);
+        histogram.add(4.6);
+        let (counts, max_count) = histogram.compute(0);
+        assert_eq!(counts.len(), 0);
+        assert_eq!(max_count, 0);
+    }
+
 }
