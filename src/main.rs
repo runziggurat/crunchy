@@ -2,6 +2,7 @@ mod config;
 mod geoip_cache;
 mod ips;
 mod nodes;
+mod histogram;
 
 use std::{fs, path::PathBuf, time::Instant};
 
@@ -13,13 +14,15 @@ use crate::{
     config::CrunchyConfiguration,
     geoip_cache::GeoIPCache,
     ips::algorithm::Ips,
-    nodes::{create_nodes, Node},
+    nodes::{create_nodes, create_histograms, Node, HistogramSummary},
 };
+
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct CrunchyState {
     elapsed: f64,
     nodes: Vec<Node>,
+    histograms: Vec<HistogramSummary>,
 }
 
 #[allow(dead_code)]
@@ -61,9 +64,15 @@ async fn write_state(config: &CrunchyConfiguration) {
     )
     .await;
 
+    let histograms = create_histograms(
+        &nodes,
+    )
+    .await;
+
     let state = CrunchyState {
         elapsed: elapsed.as_secs_f64(),
         nodes,
+        histograms,
     };
 
     // Save all changes done to the cache
@@ -157,12 +166,12 @@ mod tests {
                 .to_str()
                 .unwrap(),
         );
-        let size: usize = 2531;
+        let size: usize = 2472;
         assert_eq!(state.nodes.len(), size);
-        let node = state.nodes[1837].clone();
-        assert_eq!(node.addr.ip().to_string(), "85.15.179.171");
-        assert_eq!(node.connections.len(), 10);
-        assert!((node.betweenness - 9.576638518159478e-8).abs() < f64::EPSILON);
-        assert!((node.closeness - 2.99046781519075).abs() < f64::EPSILON);
+        let node = state.nodes[5].clone();
+        assert_eq!(node.addr.to_string(), "95.216.80.108:16125");
+        assert_eq!(node.connections.len(), 372);
+        assert!((node.betweenness - 0.00022429039726952488).abs() < f64::EPSILON);
+        assert!((node.closeness - 1.998241968994726).abs() < f64::EPSILON);
     }
 }
