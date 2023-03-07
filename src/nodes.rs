@@ -5,7 +5,19 @@ use spectre::{edge::Edge, graph::Graph};
 use ziggurat_core_crawler::summary::NodesIndices;
 use ziggurat_core_geoip::geoip::GeoInfo;
 
-use crate::geoip_cache::GeoIPCache;
+use crate::{geoip_cache::GeoIPCache, histogram::Histogram};
+
+const HISTOGRAM_COUNTS: usize = 256;
+
+#[derive(Default, Clone, Serialize, Deserialize)]
+pub struct HistogramSummary {
+    /// Name of the histogram
+    pub label: String,
+    /// Counts for each slot
+    pub counts: Vec<usize>,
+    /// Maximum count for a single slot
+    pub max_count: usize,
+}
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Node {
@@ -130,4 +142,51 @@ pub async fn create_nodes(
     // this second pass is necessary, but quite fast
     set_cell_heights(&mut nodes, &mut cell_stats);
     nodes
+}
+
+pub async fn create_histograms(nodes: &[Node]) -> Vec<HistogramSummary> {
+    // Betweenness
+    let mut histogram_b = Histogram {
+        ..Histogram::default()
+    };
+
+    // Closeness
+    let mut histogram_c = Histogram {
+        ..Histogram::default()
+    };
+
+    // Degree
+    let mut histogram_d = Histogram {
+        ..Histogram::default()
+    };
+
+    for node in nodes.iter() {
+        histogram_b.add(node.betweenness);
+        histogram_c.add(node.closeness);
+        histogram_d.add(node.connections.len() as f64);
+    }
+
+    let mut histograms = Vec::new();
+    let (counts, max_count) = histogram_b.compute(HISTOGRAM_COUNTS);
+    histograms.push(HistogramSummary {
+        label: "betweenness".to_owned(),
+        counts,
+        max_count,
+    });
+
+    let (counts, max_count) = histogram_c.compute(HISTOGRAM_COUNTS);
+    histograms.push(HistogramSummary {
+        label: "closeness".to_owned(),
+        counts,
+        max_count,
+    });
+
+    let (counts, max_count) = histogram_d.compute(HISTOGRAM_COUNTS);
+    histograms.push(HistogramSummary {
+        label: "degree".to_owned(),
+        counts,
+        max_count,
+    });
+
+    histograms
 }
