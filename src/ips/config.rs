@@ -24,6 +24,8 @@ pub struct MultiCriteriaAnalysisWeights {
 pub struct IPSConfiguration {
     /// Path where peer list file will be written
     pub peer_file_path: Option<PathBuf>,
+    /// Path where log file will be written (if none, all logs will be written to stdout)
+    pub log_path: Option<PathBuf>,
     /// Indicates if configuration should be taken into account and if so what should be
     /// preferred (closer or distant).
     pub geolocation: GeoLocationMode,
@@ -43,6 +45,7 @@ impl Default for IPSConfiguration {
     fn default() -> IPSConfiguration {
         IPSConfiguration {
             peer_file_path: Some(PathBuf::from("testdata/peers.json")),
+            log_path: None,
             geolocation: GeoLocationMode::PreferCloser,
             geolocation_minmax_distance_km: 1000,
             change_at_least: 1,
