@@ -19,7 +19,7 @@ bridge_threshold_adjustment = 1.25
 
 [ips_config.mcda_weights]
 location = 0.3
-degree = 0.25
-eigenvector = 0.1
-betweenness = 0.25
+degree = -0.3
+eigenvector = 0.2
+betweenness = -0.3
 closeness = 0.1
