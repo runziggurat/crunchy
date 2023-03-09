@@ -139,6 +139,10 @@ pub fn print_statistics(stats: &Statistics, output: &mut Box<dyn Write>) {
 
 /// Calculates percentage change between two values.
 fn percentage_change(original: f64, new: f64) -> f64 {
+    if original == 0.0 {
+        return 0.0;
+    }
+    
     (new - original) / original * 100.0
 }
 
@@ -346,6 +350,7 @@ mod tests {
         assert!(percentage_change(100.0, 200.0) - 100.0 < 0.0001);
         assert!(percentage_change(100.0, 50.0) - -50.0 < 0.0001);
         assert!(percentage_change(100.0, 100.0) - 0.0 < 0.0001);
+        assert!(percentage_change(0.0, 0.0) - 0.0 < 0.0001);
     }
 
     #[test]
