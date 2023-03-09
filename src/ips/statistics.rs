@@ -83,14 +83,14 @@ pub fn generate_statistics(state: &IpsState) -> Statistics {
 }
 
 /// Prints statistics to given output.
-pub fn print_statistics(output: &mut Box<dyn Write>, stats: &Statistics) {
-    writeln!(output, "----------------------------------------").unwrap();
-    writeln!(output, "Nodes count: {}", stats.nodes_count).unwrap();
-    writeln!(output, "\nDegree measures:").unwrap();
-    writeln!(output, "Average: {}", stats.degree_average).unwrap();
-    writeln!(output, "Median: {}", stats.degree_median).unwrap();
+pub fn print_statistics(o: &mut Box<dyn Write>, stats: &Statistics) {
+    writeln!(o, "----------------------------------------").unwrap();
+    writeln!(o, "Nodes count: {}", stats.nodes_count).unwrap();
+    writeln!(o, "\nDegree measures:").unwrap();
+    writeln!(o, "Average: {}", stats.degree_average).unwrap();
+    writeln!(o, "Median: {}", stats.degree_median).unwrap();
     writeln!(
-        output,
+        o,
         "Min: {}, max: {}, delta: {}",
         stats.degree_min,
         stats.degree_max,
@@ -98,11 +98,11 @@ pub fn print_statistics(output: &mut Box<dyn Write>, stats: &Statistics) {
     )
     .unwrap();
 
-    writeln!(output, "\nBetweenness measures:").unwrap();
-    writeln!(output, "Average: {}", stats.betweenness_average).unwrap();
-    writeln!(output, "Median: {}", stats.betweenness_median).unwrap();
+    writeln!(o, "\nBetweenness measures:").unwrap();
+    writeln!(o, "Average: {}", stats.betweenness_average).unwrap();
+    writeln!(o, "Median: {}", stats.betweenness_median).unwrap();
     writeln!(
-        output,
+        o,
         "Min: {}, max: {}, delta: {}",
         stats.betweenness_min,
         stats.betweenness_max,
@@ -110,11 +110,11 @@ pub fn print_statistics(output: &mut Box<dyn Write>, stats: &Statistics) {
     )
     .unwrap();
 
-    writeln!(output, "\nCloseness measures:").unwrap();
-    writeln!(output, "Average: {}", stats.closeness_average).unwrap();
-    writeln!(output, "Median: {}", stats.closeness_median).unwrap();
+    writeln!(o, "\nCloseness measures:").unwrap();
+    writeln!(o, "Average: {}", stats.closeness_average).unwrap();
+    writeln!(o, "Median: {}", stats.closeness_median).unwrap();
     writeln!(
-        output,
+        o,
         "Min: {}, max: {}, delta: {}",
         stats.closeness_min,
         stats.closeness_max,
@@ -122,11 +122,11 @@ pub fn print_statistics(output: &mut Box<dyn Write>, stats: &Statistics) {
     )
     .unwrap();
 
-    writeln!(output, "\nEigenvector measures:").unwrap();
-    writeln!(output, "Average: {}", stats.eigenvector_average).unwrap();
-    writeln!(output, "Median: {}", stats.eigenvector_median).unwrap();
+    writeln!(o, "\nEigenvector measures:").unwrap();
+    writeln!(o, "Average: {}", stats.eigenvector_average).unwrap();
+    writeln!(o, "Median: {}", stats.eigenvector_median).unwrap();
     writeln!(
-        output,
+        o,
         "Min: {}, max: {}, delta: {}",
         stats.eigenvector_min,
         stats.eigenvector_max,
@@ -134,7 +134,7 @@ pub fn print_statistics(output: &mut Box<dyn Write>, stats: &Statistics) {
     )
     .unwrap();
 
-    writeln!(output, "----------------------------------------\n").unwrap();
+    writeln!(o, "----------------------------------------\n").unwrap();
 }
 
 /// Calculates percentage change between two values.
@@ -153,36 +153,36 @@ fn percentage_change(original: f64, new: f64) -> f64 {
 
 /// Print statistics delta (value and percentage) between two statistics.
 pub fn print_statistics_delta(
-    output: &mut Box<dyn Write>,
+    o: &mut Box<dyn Write>,
     stats: &Statistics,
     stats_original: &Statistics,
 ) {
-    writeln!(output, "Deltas for given statistics pair:").unwrap();
-    writeln!(output, "----------------------------------------").unwrap();
+    writeln!(o, "Deltas for given statistics pair:").unwrap();
+    writeln!(o, "----------------------------------------").unwrap();
     writeln!(
-        output,
+        o,
         "Nodes count: {} ({:.3}%)",
         stats.nodes_count - stats_original.nodes_count,
         percentage_change(stats_original.nodes_count as f64, stats.nodes_count as f64)
     )
     .unwrap();
-    writeln!(output, "\nDegree measures:").unwrap();
+    writeln!(o, "\nDegree measures:").unwrap();
     writeln!(
-        output,
+        o,
         "Average: {} ({:.3}%)",
         stats.degree_average - stats_original.degree_average,
         percentage_change(stats_original.degree_average, stats.degree_average)
     )
     .unwrap();
     writeln!(
-        output,
+        o,
         "Median: {} ({:.3}%)",
         stats.degree_median - stats_original.degree_median,
         percentage_change(stats_original.degree_median, stats.degree_median)
     )
     .unwrap();
     writeln!(
-        output,
+        o,
         "Min: {} ({:.3}%), max: {} ({:.3}%), delta: {} ({:.3}%)",
         stats.degree_min - stats_original.degree_min,
         percentage_change(stats_original.degree_min, stats.degree_min),
@@ -198,9 +198,9 @@ pub fn print_statistics_delta(
     )
     .unwrap();
 
-    writeln!(output, "\nBetweenness measures:").unwrap();
+    writeln!(o, "\nBetweenness measures:").unwrap();
     writeln!(
-        output,
+        o,
         "Average: {} ({:.3}%)",
         stats.betweenness_average - stats_original.betweenness_average,
         percentage_change(
@@ -210,14 +210,14 @@ pub fn print_statistics_delta(
     )
     .unwrap();
     writeln!(
-        output,
+        o,
         "Median: {} ({:.3}%)",
         stats.betweenness_median - stats_original.betweenness_median,
         percentage_change(stats_original.betweenness_median, stats.betweenness_median)
     )
     .unwrap();
     writeln!(
-        output,
+        o,
         "Min: {} ({:.3}%), max: {} ({:.3}%), delta: {} ({:.3}%)",
         stats.betweenness_min - stats_original.betweenness_min,
         percentage_change(stats_original.betweenness_min, stats.betweenness_min),
@@ -233,23 +233,23 @@ pub fn print_statistics_delta(
     )
     .unwrap();
 
-    writeln!(output, "\nCloseness measures:").unwrap();
+    writeln!(o, "\nCloseness measures:").unwrap();
     writeln!(
-        output,
+        o,
         "Average: {} ({:.3}%)",
         stats.closeness_average - stats_original.closeness_average,
         percentage_change(stats_original.closeness_average, stats.closeness_average)
     )
     .unwrap();
     writeln!(
-        output,
+        o,
         "Median: {} ({:.3}%)",
         stats.closeness_median - stats_original.closeness_median,
         percentage_change(stats_original.closeness_median, stats.closeness_median)
     )
     .unwrap();
     writeln!(
-        output,
+        o,
         "Min: {} ({:.3}%), max: {} ({:.3}%), delta: {} ({:.3}%)",
         stats.closeness_min - stats_original.closeness_min,
         percentage_change(stats_original.closeness_min, stats.closeness_min),
@@ -265,9 +265,9 @@ pub fn print_statistics_delta(
     )
     .unwrap();
 
-    writeln!(output, "\nEigenvector measures:").unwrap();
+    writeln!(o, "\nEigenvector measures:").unwrap();
     writeln!(
-        output,
+        o,
         "Average: {} ({:.3}%)",
         stats.eigenvector_average - stats_original.eigenvector_average,
         percentage_change(
@@ -277,14 +277,14 @@ pub fn print_statistics_delta(
     )
     .unwrap();
     writeln!(
-        output,
+        o,
         "Median: {} ({:.3}%)",
         stats.eigenvector_median - stats_original.eigenvector_median,
         percentage_change(stats_original.eigenvector_median, stats.eigenvector_median)
     )
     .unwrap();
     writeln!(
-        output,
+        o,
         "Min: {} ({:.3}%), max: {} ({:.3}%), delta: {} ({:.3}%)",
         stats.eigenvector_min - stats_original.eigenvector_min,
         percentage_change(stats_original.eigenvector_min, stats.eigenvector_min),
@@ -300,7 +300,7 @@ pub fn print_statistics_delta(
     )
     .unwrap();
 
-    writeln!(output, "----------------------------------------\n").unwrap();
+    writeln!(o, "----------------------------------------\n").unwrap();
 }
 
 /// Measures the average degree of the graph.
