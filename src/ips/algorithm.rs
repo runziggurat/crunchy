@@ -86,29 +86,26 @@ impl Ips {
             None => Ok(Box::new(io::stdout()) as Box<dyn Write>),
         };
 
-        let mut output = match output {
-            Ok(output) => output,
-            Err(e) => {
-                println!("Failed to open log file: {}", e);
-                Box::new(io::stdout()) as Box<dyn Write>
-            }
-        };
+        let mut o = output.unwrap_or_else(|e| {
+            println!("Failed to open the log file: {e}");
+            Box::new(io::stdout()) as Box<dyn Write>
+        });
 
         // Sanity check that each node is really connected to its peers and the peers also
         // have the node in their connections.
-        writeln!(output, "IPS algorithm started... ").unwrap();
+        writeln!(o, "IPS algorithm started...").unwrap();
         let start_time = std::time::Instant::now();
 
-        writeln!(output, "Checking for nodes connected to themselves...").unwrap();
+        writeln!(o, "Checking for nodes connected to themselves...").unwrap();
         for (idx, node) in state.nodes.iter().enumerate() {
             if node.connections.contains(&idx) {
-                writeln!(output, "{} is connected to itself.", node.addr).unwrap();
+                writeln!(o, "{} is connected to itself.", node.addr).unwrap();
             }
 
             for peer in &node.connections {
                 if !state.nodes[*peer].connections.contains(&idx) {
                     writeln!(
-                        output,
+                        o,
                         "{} is not connected to {} but {} have a connection to it",
                         node.addr, state.nodes[*peer].addr, node.addr
                     )
@@ -117,11 +114,7 @@ impl Ips {
             }
         }
 
-        writeln!(
-            output,
-            "Generating initial network state and its statistics... "
-        )
-        .unwrap();
+        writeln!(o, "Generating initial network state and its statistics... ").unwrap();
 
         // This is the working set of factors.
         let mut working_state = self.generate_state(&state.nodes, false);
@@ -129,11 +122,11 @@ impl Ips {
 
         let initial_statistics = generate_statistics(&working_state);
 
-        writeln!(output, "Statistics for the initial network:").unwrap();
-        print_statistics(&initial_statistics, &mut output);
+        writeln!(o, "Statistics for the initial network:").unwrap();
+        print_statistics(&mut o, &initial_statistics);
 
         writeln!(
-            output,
+            o,
             "Generated initial state and statistics in {} s",
             start_time.elapsed().as_secs()
         )
@@ -167,21 +160,21 @@ impl Ips {
             }
 
             writeln!(
-                output,
-                "IPS detected no massive islands however there are some disconnected nodes"
+                o,
+                "IPS detected no massive islands. However, there are some disconnected nodes."
             )
             .unwrap();
         } else {
             // There are no islands
-            writeln!(output, "IPS detected no islands").unwrap();
+            writeln!(o, "IPS detected no islands").unwrap();
         }
 
         if !self.check_and_fix_integrity_upon_removal(&mut working_state) {
-            writeln!(output, "There were hot nodes that can be dangerous for the network! Recalculating graph...").unwrap();
+            writeln!(o, "There were hot nodes that can be dangerous for the network! Recalculating graph...").unwrap();
             working_state = self.generate_state(&working_state.nodes, true);
         } else {
             // There are no hot nodes
-            writeln!(output, "IPS detected no fragmentation possibility even when top nodes would be disconnected").unwrap();
+            writeln!(o, "IPS detected no fragmentation possibility even when top nodes would be disconnected").unwrap();
         }
 
         // Now take the current params
@@ -195,7 +188,7 @@ impl Ips {
 
         // Phase 2: Generate peer list using MCDA optimization.
 
-        writeln!(output, "MCDA is starting to work...").unwrap();
+        writeln!(o, "The MCDA procedure is starting...").unwrap();
 
         // Node rating can be split into two parts: constant and variable depending on the node's
         // location. Now we can compute each node's constant rating based on some graph params.
@@ -356,7 +349,7 @@ impl Ips {
         }
 
         writeln!(
-            output,
+            o,
             "All IPS computations done in {} s from IPS start",
             start_time.elapsed().as_secs()
         )
@@ -365,18 +358,18 @@ impl Ips {
         final_state = self.generate_state(&final_state.nodes, true);
 
         let final_statistics = generate_statistics(&final_state);
-        writeln!(output, "Statistics for the final network:").unwrap();
-        print_statistics(&final_statistics, &mut output);
+        writeln!(o, "Statistics for the final network:").unwrap();
+        print_statistics(&mut o, &final_statistics);
 
         writeln!(
-            output,
+            o,
             "Comparing if network parameters got changed on plus or minus:"
         )
         .unwrap();
-        print_statistics_delta(&final_statistics, &initial_statistics, &mut output);
+        print_statistics_delta(&mut o, &final_statistics, &initial_statistics);
 
         writeln!(
-            output,
+            o,
             "IPS has been working for {} seconds",
             start_time.elapsed().as_secs()
         )

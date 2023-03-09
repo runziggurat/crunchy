@@ -83,7 +83,7 @@ pub fn generate_statistics(state: &IpsState) -> Statistics {
 }
 
 /// Prints statistics to given output.
-pub fn print_statistics(stats: &Statistics, output: &mut Box<dyn Write>) {
+pub fn print_statistics(output: &mut Box<dyn Write>, stats: &Statistics) {
     writeln!(output, "----------------------------------------").unwrap();
     writeln!(output, "Nodes count: {}", stats.nodes_count).unwrap();
     writeln!(output, "\nDegree measures:").unwrap();
@@ -139,18 +139,23 @@ pub fn print_statistics(stats: &Statistics, output: &mut Box<dyn Write>) {
 
 /// Calculates percentage change between two values.
 fn percentage_change(original: f64, new: f64) -> f64 {
+    // Calc delta to keep the original value intact for this part
+    let delta = new - original;
+
+    let mut original = original;
     if original == 0.0 {
-        return 0.0;
+        // We can use some small value here just to fake the infinity case (diving by zero)
+        original = 0.000000001;
     }
 
-    (new - original) / original * 100.0
+    (delta / original) * 100.0
 }
 
 /// Print statistics delta (value and percentage) between two statistics.
 pub fn print_statistics_delta(
+    output: &mut Box<dyn Write>,
     stats: &Statistics,
     stats_original: &Statistics,
-    output: &mut Box<dyn Write>,
 ) {
     writeln!(output, "Deltas for given statistics pair:").unwrap();
     writeln!(output, "----------------------------------------").unwrap();
