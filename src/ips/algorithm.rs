@@ -12,6 +12,9 @@
 
 use std::{
     collections::{HashMap, HashSet, VecDeque},
+    fs::File,
+    io,
+    io::Write,
     net::SocketAddr,
 };
 
@@ -77,30 +80,57 @@ impl Ips {
 
     /// Generate peer list - main function with The Algorithm
     pub async fn generate(&mut self, state: &CrunchyState) -> Vec<Peer> {
+        // Set up logging
+        let output = match self.config.log_path {
+            Some(ref path) => File::create(path).map(|f| Box::new(f) as Box<dyn Write>),
+            None => Ok(Box::new(io::stdout()) as Box<dyn Write>),
+        };
+
+        let mut o = output.unwrap_or_else(|e| {
+            println!("Failed to open the log file: {e}");
+            Box::new(io::stdout()) as Box<dyn Write>
+        });
+
         // Sanity check that each node is really connected to its peers and the peers also
         // have the node in their connections.
+        writeln!(o, "IPS algorithm started...").unwrap();
+        let start_time = std::time::Instant::now();
+
+        writeln!(o, "Checking for nodes connected to themselves...").unwrap();
         for (idx, node) in state.nodes.iter().enumerate() {
             if node.connections.contains(&idx) {
-                println!("{} is connected to itself.", node.addr);
+                writeln!(o, "{} is connected to itself.", node.addr).unwrap();
             }
 
             for peer in &node.connections {
                 if !state.nodes[*peer].connections.contains(&idx) {
-                    println!(
+                    writeln!(
+                        o,
                         "{} is not connected to {} but {} have a connection to it",
                         node.addr, state.nodes[*peer].addr, node.addr
-                    );
+                    )
+                    .unwrap();
                 }
             }
         }
+
+        writeln!(o, "Generating initial network state and its statistics... ").unwrap();
 
         // This is the working set of factors.
         let mut working_state = self.generate_state(&state.nodes, false);
         let mut final_state = working_state.clone();
 
         let initial_statistics = generate_statistics(&working_state);
-        println!("Statistics for the initial network:");
-        print_statistics(&initial_statistics);
+
+        writeln!(o, "Statistics for the initial network:").unwrap();
+        print_statistics(&mut o, &initial_statistics);
+
+        writeln!(
+            o,
+            "Generated initial state and statistics in {} s",
+            start_time.elapsed().as_secs()
+        )
+        .unwrap();
 
         // Phase 1: Security checks
         //TODO(asmie): Detecting islands, bridges and hot nodes. Checking if there are any nodes that upon removal
@@ -128,11 +158,23 @@ impl Ips {
                 // after separation.
                 panic!("There are more than one massive island in the network. It is not possible to merge them automatically.");
             }
+
+            writeln!(
+                o,
+                "IPS detected no massive islands. However, there are some disconnected nodes."
+            )
+            .unwrap();
+        } else {
+            // There are no islands
+            writeln!(o, "IPS detected no islands").unwrap();
         }
 
         if !self.check_and_fix_integrity_upon_removal(&mut working_state) {
-            println!("There were hot nodes that can be dangerous for the network! Recalculating graph...");
+            writeln!(o, "There were hot nodes that can be dangerous for the network! Recalculating graph...").unwrap();
             working_state = self.generate_state(&working_state.nodes, true);
+        } else {
+            // There are no hot nodes
+            writeln!(o, "IPS detected no fragmentation possibility even when top nodes would be disconnected").unwrap();
         }
 
         // Now take the current params
@@ -145,6 +187,8 @@ impl Ips {
         );
 
         // Phase 2: Generate peer list using MCDA optimization.
+
+        writeln!(o, "The MCDA procedure is starting...").unwrap();
 
         // Node rating can be split into two parts: constant and variable depending on the node's
         // location. Now we can compute each node's constant rating based on some graph params.
@@ -304,14 +348,32 @@ impl Ips {
             }
         }
 
+        writeln!(
+            o,
+            "All IPS computations done in {} s from IPS start",
+            start_time.elapsed().as_secs()
+        )
+        .unwrap();
+
         final_state = self.generate_state(&final_state.nodes, true);
 
         let final_statistics = generate_statistics(&final_state);
-        println!("Statistics for the final network:");
-        print_statistics(&final_statistics);
+        writeln!(o, "Statistics for the final network:").unwrap();
+        print_statistics(&mut o, &final_statistics);
 
-        println!("Comparing if network parameters got changed on plus or minus:");
-        print_statistics_delta(&final_statistics, &initial_statistics);
+        writeln!(
+            o,
+            "Comparing if network parameters got changed on plus or minus:"
+        )
+        .unwrap();
+        print_statistics_delta(&mut o, &final_statistics, &initial_statistics);
+
+        writeln!(
+            o,
+            "IPS has been working for {} seconds",
+            start_time.elapsed().as_secs()
+        )
+        .unwrap();
 
         final_state.peer_list
     }

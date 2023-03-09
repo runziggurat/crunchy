@@ -1,4 +1,4 @@
-use std::{collections::HashMap, net::SocketAddr};
+use std::{collections::HashMap, io::Write, net::SocketAddr};
 
 use crate::ips::algorithm::IpsState;
 
@@ -23,6 +23,7 @@ pub struct Statistics {
     eigenvector_max: f64,
 }
 
+/// Calculates statistics for given network state.
 pub fn generate_statistics(state: &IpsState) -> Statistics {
     Statistics {
         nodes_count: state.nodes.len(),
@@ -81,132 +82,225 @@ pub fn generate_statistics(state: &IpsState) -> Statistics {
     }
 }
 
-pub fn print_statistics(stats: &Statistics) {
-    println!("----------------------------------------");
-    println!("Nodes count: {}", stats.nodes_count);
-    println!("\nDegree measures:");
-    println!("Average: {}", stats.degree_average);
-    println!("Median: {}", stats.degree_median);
-    println!(
+/// Prints statistics to given output.
+pub fn print_statistics(o: &mut Box<dyn Write>, stats: &Statistics) {
+    writeln!(o, "----------------------------------------").unwrap();
+    writeln!(o, "Nodes count: {}", stats.nodes_count).unwrap();
+    writeln!(o, "\nDegree measures:").unwrap();
+    writeln!(o, "Average: {}", stats.degree_average).unwrap();
+    writeln!(o, "Median: {}", stats.degree_median).unwrap();
+    writeln!(
+        o,
         "Min: {}, max: {}, delta: {}",
         stats.degree_min,
         stats.degree_max,
         stats.degree_max - stats.degree_min
-    );
+    )
+    .unwrap();
 
-    println!("\nBetweenness measures:");
-    println!("Average: {}", stats.betweenness_average);
-    println!("Median: {}", stats.betweenness_median);
-    println!(
+    writeln!(o, "\nBetweenness measures:").unwrap();
+    writeln!(o, "Average: {}", stats.betweenness_average).unwrap();
+    writeln!(o, "Median: {}", stats.betweenness_median).unwrap();
+    writeln!(
+        o,
         "Min: {}, max: {}, delta: {}",
         stats.betweenness_min,
         stats.betweenness_max,
         stats.betweenness_max - stats.betweenness_min
-    );
+    )
+    .unwrap();
 
-    println!("\nCloseness measures:");
-    println!("Average: {}", stats.closeness_average);
-    println!("Median: {}", stats.closeness_median);
-    println!(
+    writeln!(o, "\nCloseness measures:").unwrap();
+    writeln!(o, "Average: {}", stats.closeness_average).unwrap();
+    writeln!(o, "Median: {}", stats.closeness_median).unwrap();
+    writeln!(
+        o,
         "Min: {}, max: {}, delta: {}",
         stats.closeness_min,
         stats.closeness_max,
         stats.closeness_max - stats.closeness_min
-    );
+    )
+    .unwrap();
 
-    println!("\nEigenvector measures:");
-    println!("Average: {}", stats.eigenvector_average);
-    println!("Median: {}", stats.eigenvector_median);
-    println!(
+    writeln!(o, "\nEigenvector measures:").unwrap();
+    writeln!(o, "Average: {}", stats.eigenvector_average).unwrap();
+    writeln!(o, "Median: {}", stats.eigenvector_median).unwrap();
+    writeln!(
+        o,
         "Min: {}, max: {}, delta: {}",
         stats.eigenvector_min,
         stats.eigenvector_max,
         stats.eigenvector_max - stats.eigenvector_min
-    );
+    )
+    .unwrap();
 
-    println!("----------------------------------------\n");
+    writeln!(o, "----------------------------------------\n").unwrap();
 }
 
-pub fn print_statistics_delta(stats: &Statistics, stats_original: &Statistics) {
-    println!("Deltas for given statistics pair:");
-    println!("----------------------------------------");
-    println!(
-        "Nodes count: {}",
-        stats.nodes_count - stats_original.nodes_count
-    );
-    println!("\nDegree measures:");
-    println!(
-        "Average: {}",
-        stats.degree_average - stats_original.degree_average
-    );
-    println!(
-        "Median: {}",
-        stats.degree_median - stats_original.degree_median
-    );
-    println!(
-        "Min: {}, max: {}, delta: {}",
+/// Calculates percentage change between two values.
+fn percentage_change(original: f64, new: f64) -> f64 {
+    // Calc delta to keep the original value intact for this part
+    let delta = new - original;
+
+    let mut original = original;
+    if original == 0.0 {
+        // We can use some small value here just to fake the infinity case (diving by zero)
+        original = 0.000000001;
+    }
+
+    (delta / original) * 100.0
+}
+
+/// Print statistics delta (value and percentage) between two statistics.
+pub fn print_statistics_delta(
+    o: &mut Box<dyn Write>,
+    stats: &Statistics,
+    stats_original: &Statistics,
+) {
+    writeln!(o, "Deltas for given statistics pair:").unwrap();
+    writeln!(o, "----------------------------------------").unwrap();
+    writeln!(
+        o,
+        "Nodes count: {} ({:.3}%)",
+        stats.nodes_count - stats_original.nodes_count,
+        percentage_change(stats_original.nodes_count as f64, stats.nodes_count as f64)
+    )
+    .unwrap();
+    writeln!(o, "\nDegree measures:").unwrap();
+    writeln!(
+        o,
+        "Average: {} ({:.3}%)",
+        stats.degree_average - stats_original.degree_average,
+        percentage_change(stats_original.degree_average, stats.degree_average)
+    )
+    .unwrap();
+    writeln!(
+        o,
+        "Median: {} ({:.3}%)",
+        stats.degree_median - stats_original.degree_median,
+        percentage_change(stats_original.degree_median, stats.degree_median)
+    )
+    .unwrap();
+    writeln!(
+        o,
+        "Min: {} ({:.3}%), max: {} ({:.3}%), delta: {} ({:.3}%)",
         stats.degree_min - stats_original.degree_min,
+        percentage_change(stats_original.degree_min, stats.degree_min),
         stats.degree_max - stats_original.degree_max,
+        percentage_change(stats_original.degree_max, stats.degree_max),
         stats.degree_max
             - stats.degree_min
-            - (stats_original.degree_max - stats_original.degree_min)
-    );
+            - (stats_original.degree_max - stats_original.degree_min),
+        percentage_change(
+            stats_original.degree_max - stats_original.degree_min,
+            stats.degree_max - stats.degree_min
+        )
+    )
+    .unwrap();
 
-    println!("\nBetweenness measures:");
-    println!(
-        "Average: {}",
-        stats.betweenness_average - stats_original.betweenness_average
-    );
-    println!(
-        "Median: {}",
-        stats.betweenness_median - stats_original.betweenness_median
-    );
-    println!(
-        "Min: {}, max: {}, delta: {}",
+    writeln!(o, "\nBetweenness measures:").unwrap();
+    writeln!(
+        o,
+        "Average: {} ({:.3}%)",
+        stats.betweenness_average - stats_original.betweenness_average,
+        percentage_change(
+            stats_original.betweenness_average,
+            stats.betweenness_average
+        )
+    )
+    .unwrap();
+    writeln!(
+        o,
+        "Median: {} ({:.3}%)",
+        stats.betweenness_median - stats_original.betweenness_median,
+        percentage_change(stats_original.betweenness_median, stats.betweenness_median)
+    )
+    .unwrap();
+    writeln!(
+        o,
+        "Min: {} ({:.3}%), max: {} ({:.3}%), delta: {} ({:.3}%)",
         stats.betweenness_min - stats_original.betweenness_min,
+        percentage_change(stats_original.betweenness_min, stats.betweenness_min),
         stats.betweenness_max - stats_original.betweenness_max,
+        percentage_change(stats_original.betweenness_max, stats.betweenness_max),
         stats.betweenness_max
             - stats.betweenness_min
-            - (stats_original.betweenness_max - stats_original.betweenness_min)
-    );
+            - (stats_original.betweenness_max - stats_original.betweenness_min),
+        percentage_change(
+            stats_original.betweenness_max - stats_original.betweenness_min,
+            stats.betweenness_max - stats.betweenness_min
+        )
+    )
+    .unwrap();
 
-    println!("\nCloseness measures:");
-    println!(
-        "Average: {}",
-        stats.closeness_average - stats_original.closeness_average
-    );
-    println!(
-        "Median: {}",
-        stats.closeness_median - stats_original.closeness_median
-    );
-    println!(
-        "Min: {}, max: {}, delta: {}",
+    writeln!(o, "\nCloseness measures:").unwrap();
+    writeln!(
+        o,
+        "Average: {} ({:.3}%)",
+        stats.closeness_average - stats_original.closeness_average,
+        percentage_change(stats_original.closeness_average, stats.closeness_average)
+    )
+    .unwrap();
+    writeln!(
+        o,
+        "Median: {} ({:.3}%)",
+        stats.closeness_median - stats_original.closeness_median,
+        percentage_change(stats_original.closeness_median, stats.closeness_median)
+    )
+    .unwrap();
+    writeln!(
+        o,
+        "Min: {} ({:.3}%), max: {} ({:.3}%), delta: {} ({:.3}%)",
         stats.closeness_min - stats_original.closeness_min,
+        percentage_change(stats_original.closeness_min, stats.closeness_min),
         stats.closeness_max - stats_original.closeness_max,
+        percentage_change(stats_original.closeness_max, stats.closeness_max),
         stats.closeness_max
             - stats.closeness_min
-            - (stats_original.closeness_max - stats_original.closeness_min)
-    );
+            - (stats_original.closeness_max - stats_original.closeness_min),
+        percentage_change(
+            stats_original.closeness_max - stats_original.closeness_min,
+            stats.closeness_max - stats.closeness_min
+        )
+    )
+    .unwrap();
 
-    println!("\nEigenvector measures:");
-    println!(
-        "Average: {}",
-        stats.eigenvector_average - stats_original.eigenvector_average
-    );
-    println!(
-        "Median: {}",
-        stats.eigenvector_median - stats_original.eigenvector_median
-    );
-    println!(
-        "Min: {}, max: {}, delta: {}",
+    writeln!(o, "\nEigenvector measures:").unwrap();
+    writeln!(
+        o,
+        "Average: {} ({:.3}%)",
+        stats.eigenvector_average - stats_original.eigenvector_average,
+        percentage_change(
+            stats_original.eigenvector_average,
+            stats.eigenvector_average
+        )
+    )
+    .unwrap();
+    writeln!(
+        o,
+        "Median: {} ({:.3}%)",
+        stats.eigenvector_median - stats_original.eigenvector_median,
+        percentage_change(stats_original.eigenvector_median, stats.eigenvector_median)
+    )
+    .unwrap();
+    writeln!(
+        o,
+        "Min: {} ({:.3}%), max: {} ({:.3}%), delta: {} ({:.3}%)",
         stats.eigenvector_min - stats_original.eigenvector_min,
+        percentage_change(stats_original.eigenvector_min, stats.eigenvector_min),
         stats.eigenvector_max - stats_original.eigenvector_max,
+        percentage_change(stats_original.eigenvector_max, stats.eigenvector_max),
         stats.eigenvector_max
             - stats.eigenvector_min
-            - (stats_original.eigenvector_max - stats_original.eigenvector_min)
-    );
+            - (stats_original.eigenvector_max - stats_original.eigenvector_min),
+        percentage_change(
+            stats_original.eigenvector_max - stats_original.eigenvector_min,
+            stats.eigenvector_max - stats.eigenvector_min
+        )
+    )
+    .unwrap();
 
-    println!("----------------------------------------\n");
+    writeln!(o, "----------------------------------------\n").unwrap();
 }
 
 /// Measures the average degree of the graph.
@@ -255,6 +349,14 @@ mod tests {
     };
 
     use super::*;
+
+    #[test]
+    fn percentage_change_test() {
+        assert!(percentage_change(100.0, 200.0) - 100.0 < 0.0001);
+        assert!(percentage_change(100.0, 50.0) - -50.0 < 0.0001);
+        assert!(percentage_change(100.0, 100.0) - 0.0 < 0.0001);
+        assert!(percentage_change(0.0, 0.0) - 0.0 < 0.0001);
+    }
 
     #[test]
     fn degree_centrality_avg_test() {
