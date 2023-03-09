@@ -142,7 +142,7 @@ fn percentage_change(original: f64, new: f64) -> f64 {
     if original == 0.0 {
         return 0.0;
     }
-    
+
     (new - original) / original * 100.0
 }
 
