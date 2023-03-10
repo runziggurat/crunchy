@@ -42,7 +42,8 @@ pub struct GeoIPConfiguration {
     pub ipapicom_api_key: Option<String>,
 }
 
-/// GeoLocationMode enum
+/// GeoLocationMode enum - indicates if location should be taken into account and if so what
+/// should be preferred (closer or distant nodes).
 #[derive(Debug, PartialEq, Clone, Deserialize)]
 pub enum GeoLocationMode {
     Off,

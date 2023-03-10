@@ -72,8 +72,9 @@ async fn write_state(config: &CrunchyConfiguration) {
     };
 
     // Save all changes done to the cache
-    // TODO(asmie): better error handling - after refactorization of this function
-    geo_cache.save().await.expect("could not save geoip cache");
+    if let Err(res) = geo_cache.save().await {
+        println!("Could not save cache file: {}", res);
+    }
 
     let mut ips = Ips::new(config.ips_config.clone());
     let ips_peers = ips.generate(&state).await;
