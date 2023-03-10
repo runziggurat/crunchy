@@ -1,4 +1,9 @@
 // Intelligent Peer Sharing (IPS) module
+// The main algorithm is divided into two main parts:
+// Security part - it is responsible for the selection of the peer that when removed, can cause
+// the biggest damage to the network. There is also bridge detection algorithm.
+// Second part is the optimization one. It is responsible for the selection of the peers that
+// can improve the overall network statistics and improve connectivity between the peers.
 // Selection is based on the "beauty" contest of the nodes - each node is evaluated based on its
 // degree, betweenness, closeness and eigenvector centrality. Then, if requested ranking is
 // updated with location factor. Each factor has its own weight that is used to determine
@@ -41,13 +46,21 @@ pub struct Ips {
 /// State structure containing all the information about the graph and nodes at some point
 #[derive(Default, Clone)]
 pub struct IpsState {
+    /// Nodes present in the network
     pub nodes: Vec<Node>,
+    /// Peer list for each node in the network
     pub peer_list: Vec<Peer>,
+    /// Degrees of each node in the network
     pub degrees: HashMap<SocketAddr, u32>,
+    /// Betweenness of each node in the network
     pub eigenvalues: HashMap<SocketAddr, f64>,
+    /// Degree factors used for normalization
     pub degree_factors: NormalizationFactors,
+    /// Betweenness factors used for normalization
     pub betweenness_factors: NormalizationFactors,
+    /// Closeness factors used for normalization
     pub closeness_factors: NormalizationFactors,
+    /// Eigenvector factors used for normalization
     pub eigenvector_factors: NormalizationFactors,
 }
 
@@ -58,7 +71,7 @@ struct PeerEntry {
     pub addr: SocketAddr,
     /// Index of the peer in the state.nodes
     pub index: usize,
-    /// Ranking of the peer
+    /// Rating of the peer
     pub rating: f64,
 }
 
@@ -133,9 +146,6 @@ impl Ips {
         .unwrap();
 
         // Phase 1: Security checks
-        //TODO(asmie): Detecting islands, bridges and hot nodes. Checking if there are any nodes that upon removal
-        // would cause the graph to be disconnected. If there are any, there is a need to create
-        // new connections between the possible islands.
 
         // Detect islands
         let islands = self.detect_islands(&working_state.nodes);
