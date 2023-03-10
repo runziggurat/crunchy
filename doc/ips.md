@@ -27,9 +27,9 @@ All of the above factors are written to the IPS result log, allowing one to chec
 
 ### Security checks
 
-One of the most important properties of a network topology is the presence or absence of network islands. Presence of islands may influence every other network or node parameter that we are observing. Merging two massive islands can be risky and should not be done automatically. The islands could have been disconnected for a long time and produced different history of their blockchain. IPS can detect such situation and breaks computations notifying the user about island existence. 
+One of the most important properties of a network topology is the presence or absence of network islands. Presence of islands may influence every other network or node parameter that we are observing. Merging two massive islands can be risky and should not be done automatically. The islands could have been disconnected for a long time and produced a different history of their blockchain. IPS can detect such situations, and notify the user about the existence of islands. 
 
-Next, IPS checks if the network can be easily fragmented by attacking a given percent of the nodes and if so, preventing such cases by creating new connections between their neighbours. Nodes selected to that fragmentation simulation are chosen from the "hot" nodes, which means the nodes with highest betweenness factor. 
+Next, IPS checks if the network can be easily fragmented by attacking a given percent of the nodes and if so, preventing such cases by creating new connections between their neighbours. Nodes selected by that fragmentation simulation are chosen from the "hot" nodes, which means the nodes with highest betweenness factor. 
 
 The final checks are related to the network bridges - such graph edges are identified and algorithm prevents their removal to ensure there will be no new islands.
 
