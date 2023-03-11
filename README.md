@@ -67,83 +67,107 @@ Options:
 
 The command line also prints the network parameters before and after applying the IPS algorithm output. Parameters are printed in the following format:
 
+IPS is described in details [ips.md](docs/ips.md).
+
 ```
+IPS algorithm started...
+Checking for nodes connected to themselves...
+172.218.177.148:16125 is connected to itself.
+154.53.63.9:16125 is connected to itself.
+146.59.124.83:16125 is connected to itself.
+37.187.88.103:16125 is connected to itself.
+54.37.141.22:16125 is connected to itself.
+
+...
+[nodes connected to themself list]
+...
+
+37.59.134.165:16125 is connected to itself.
+142.167.129.14:16125 is connected to itself.
+65.108.99.214:16125 is connected to itself.
+Generating initial network state and its statistics...
 Statistics for the initial network:
 ----------------------------------------
-Nodes count: 2472
+Nodes count: 6729
 
 Degree measures:
-Average: 347.84021035598704
-Median: 362
-Min: 4, max: 468, delta: 464
+Average: 1673.378510922871
+Median: 1775
+Min: 1, max: 2948, delta: 2947
 
 Betweenness measures:
-Average: 0.00020269540490710155
-Median: 0.00021315968556486295
-Min: 0.000000011402470586985047, max: 0.0005637115400558378, delta: 0.0005637001375852508
+Average: 0.0006914887442478738
+Median: 0.0007390585712156514
+Min: 0, max: 0.002065442852915205, delta: 0.002065442852915205
 
 Closeness measures:
-Average: 2.00092942092042
-Median: 1.9982984574223353
-Min: 1.996533523649682, max: 2.995343149165006, delta: 0.9988096255153243
+Average: 2.0009819311242922
+Median: 2.000098387783965
+Min: 1.9989458610770605, max: 2.9992496962479973, delta: 1.0003038351709368
 
 Eigenvector measures:
-Average: 1.0000000000000024
-Median: 1.0408706699768735
-Min: 0.009224464066643153, max: 1.338099762915545, delta: 1.3288752988489019
+Average: 1.000000000000002
+Median: 1.056610881384425
+Min: 0.0005267475705698542, max: 1.7232354729355281, delta: 1.7227087253649582
 ----------------------------------------
 
-
+Generated initial state and statistics in 383 s
+IPS detected no islands
+IPS detected no fragmentation possibility even when top nodes would be disconnected
+The MCDA procedure is starting...
+All IPS computations done in 412 s from IPS start
 Statistics for the final network:
 ----------------------------------------
-Nodes count: 2472
+Nodes count: 6729
 
 Degree measures:
-Average: 349.4037216828479
-Median: 364
-Min: 6, max: 464, delta: 458
+Average: 1668.1619854361718
+Median: 1776
+Min: 2, max: 2910, delta: 2908
 
 Betweenness measures:
-Average: 0.000202632404811459
-Median: 0.0002134929923408508
-Min: 0.000000011402470586985047, max: 0.0005637115400558378, delta: 0.0005637001375852508
+Average: 0.0007233121796668225
+Median: 0.0007800175457913357
+Min: 0, max: 0.002065442852915205, delta: 0.002065442852915205
 
 Closeness measures:
-Average: 2.00074154309123
-Median: 1.999510851620058
-Min: 1.996533523649682, max: 2.995343149165006, delta: 0.9988096255153243
+Average: 2.000953117674391
+Median: 1.9996456008839623
+Min: 1.9989458610770605, max: 2.9992496962479973, delta: 1.0003038351709368
 
 Eigenvector measures:
-Average: 0.9999999999999986
-Median: 1.040565271198553
-Min: 0.01793917429148585, max: 1.319358717826537, delta: 1.301419543535051
+Average: 1.0000000000000022
+Median: 1.061306347054873
+Min: 0.001138872735927244, max: 1.6923985711437681, delta: 1.691259698407841
 ----------------------------------------
 
 Comparing if network parameters got changed on plus or minus:
 Deltas for given statistics pair:
 ----------------------------------------
-Nodes count: 0
+Nodes count: 0 (0.000%)
 
 Degree measures:
-Average: 1.563511326860862
-Median: 2
-Min: 2, max: -4, delta: -6
+Average: -5.216525486699311 (-0.312%)
+Median: 1 (0.056%)
+Min: 1 (100.000%), max: -38 (-1.289%), delta: -39 (-1.323%)
 
 Betweenness measures:
-Average: -0.00000006300009564255845
-Median: 0.0000003333067759878441
-Min: 0, max: 0, delta: 0
+Average: 0.00003182343541894867 (4.602%)
+Median: 0.00004095897457568427 (5.542%)
+Min: 0 (0.000%), max: 0 (0.000%), delta: 0 (0.000%)
 
 Closeness measures:
-Average: -0.00018787782919016394
-Median: 0.001212394197722677
-Min: 0, max: 0, delta: 0
+Average: -0.00002881344990113277 (-0.001%)
+Median: -0.0004527869000026108 (-0.023%)
+Min: 0 (0.000%), max: 0 (0.000%), delta: 0 (0.000%)
 
 Eigenvector measures:
-Average: -0.000000000000003885780586188048
-Median: -0.00030539877832058693
-Min: 0.008714710224842699, max: -0.0187410450890082, delta: -0.027455755313850805
+Average: 0.0000000000000002220446049250313 (0.000%)
+Median: 0.004695465670447874 (0.444%)
+Min: 0.0006121251653573898 (116.208%), max: -0.03083690179176002 (-1.789%), delta: -0.031449026957117265 (-1.826%)
 ----------------------------------------
+
+IPS has been working for 8848 seconds
 ```
 
 Output can contain also information about some problems found, like nodes with assymetric connections, or nodes connected to themselves.
