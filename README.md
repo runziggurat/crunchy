@@ -67,7 +67,7 @@ Options:
 
 The command line also prints the network parameters before and after applying the IPS algorithm output. Parameters are printed in the following format:
 
-IPS is described in details [ips.md](docs/ips.md).
+IPS is described in details [ips.md](doc/ips.md).
 
 ```
 IPS algorithm started...
