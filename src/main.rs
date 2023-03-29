@@ -1,4 +1,5 @@
 mod config;
+mod constants;
 mod geoip_cache;
 mod histogram;
 mod ips;
@@ -56,13 +57,11 @@ async fn write_state(config: &CrunchyConfiguration) {
 
     geo_cache.configure_providers(&config.geoip_config);
 
-    const NUM_THREADS: usize = 8;
     let nodes = create_nodes(
         &response.result.nodes_indices,
         &response.result.node_addrs,
         &response.result.node_network_types,
         &geo_cache,
-        NUM_THREADS,
     )
     .await;
 
@@ -80,7 +79,7 @@ async fn write_state(config: &CrunchyConfiguration) {
     }
 
     let mut ips = Ips::new(config.ips_config.clone());
-    let ips_peers = ips.generate(&state, NUM_THREADS).await;
+    let ips_peers = ips.generate(&state).await;
 
     let peerlist = serde_json::to_string(&ips_peers).unwrap();
     fs::write(config.ips_config.peer_file_path.as_ref().unwrap(), peerlist).unwrap();

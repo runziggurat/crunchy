@@ -5,7 +5,7 @@ use spectre::{edge::Edge, graph::Graph};
 use ziggurat_core_crawler::summary::{NetworkType, NodesIndices};
 use ziggurat_core_geoip::geoip::GeoInfo;
 
-use crate::{geoip_cache::GeoIPCache, histogram::Histogram};
+use crate::{constants::NUM_THREADS, geoip_cache::GeoIPCache, histogram::Histogram};
 
 const HISTOGRAM_COUNTS: usize = 256;
 
@@ -54,7 +54,6 @@ pub async fn create_nodes(
     node_addrs: &[SocketAddr],
     node_network_types: &[NetworkType],
     geo_cache: &GeoIPCache,
-    num_threads: usize,
 ) -> Vec<Node> {
     let mut graph = Graph::new();
     for (n, node) in indices.iter().enumerate() {
@@ -65,8 +64,8 @@ pub async fn create_nodes(
             });
     }
 
-    let betweenness = graph.betweenness_centrality(num_threads, false);
-    let closeness = graph.closeness_centrality(num_threads);
+    let betweenness = graph.betweenness_centrality(NUM_THREADS, false);
+    let closeness = graph.closeness_centrality(NUM_THREADS);
     let mut nodes = Vec::with_capacity(indices.len());
 
     for i in 0..indices.len() {
