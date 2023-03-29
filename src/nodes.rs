@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 
 use serde::{Deserialize, Serialize};
 use spectre::{edge::Edge, graph::Graph};
-use ziggurat_core_crawler::summary::NodesIndices;
+use ziggurat_core_crawler::summary::{NetworkType, NodesIndices};
 use ziggurat_core_geoip::geoip::GeoInfo;
 
 use crate::{geoip_cache::GeoIPCache, histogram::Histogram};
@@ -23,6 +23,8 @@ pub struct HistogramSummary {
 pub struct Node {
     /// the ip address with port number
     pub addr: SocketAddr,
+    /// the node network type
+    pub network_type: NetworkType,
     /// the computed betweenness
     pub betweenness: f64,
     /// the computed closeness
@@ -38,6 +40,7 @@ impl Default for Node {
     fn default() -> Self {
         Self {
             addr: SocketAddr::new("0.0.0.0".parse().unwrap(), 0),
+            network_type: NetworkType::Unknown,
             betweenness: 0.0,
             closeness: 0.0,
             connections: Vec::new(),
@@ -49,7 +52,9 @@ impl Default for Node {
 pub async fn create_nodes(
     indices: &NodesIndices,
     node_addrs: &[SocketAddr],
+    node_network_types: &[NetworkType],
     geo_cache: &GeoIPCache,
+    num_threads: usize,
 ) -> Vec<Node> {
     let mut graph = Graph::new();
     for (n, node) in indices.iter().enumerate() {
@@ -60,13 +65,14 @@ pub async fn create_nodes(
             });
     }
 
-    let betweenness = graph.betweenness_centrality();
-    let closeness = graph.closeness_centrality();
+    let betweenness = graph.betweenness_centrality(num_threads, false);
+    let closeness = graph.closeness_centrality(num_threads);
     let mut nodes = Vec::with_capacity(indices.len());
 
     for i in 0..indices.len() {
         let node: Node = Node {
             addr: node_addrs[i],
+            network_type: node_network_types[i].clone(),
             betweenness: *betweenness
                 .get(&i)
                 .expect("could not find betweenness value for index}"),
