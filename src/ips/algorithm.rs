@@ -25,6 +25,7 @@ use std::{
 
 use crate::{
     config::GeoLocationMode,
+    constants::NUM_THREADS,
     ips::{
         config::IPSConfiguration,
         graph_utils::{construct_graph, find_bridges, find_lowest_betweenness, remove_node},
@@ -465,8 +466,8 @@ impl Ips {
         let mut graph = construct_graph(nodes);
 
         if generate_full {
-            let betweenness = graph.betweenness_centrality();
-            let closeness = graph.closeness_centrality();
+            let betweenness = graph.betweenness_centrality(NUM_THREADS, false);
+            let closeness = graph.closeness_centrality(NUM_THREADS);
 
             // Recalculate factors with new graph
             for node in ips_state.nodes.iter_mut() {

@@ -57,7 +57,7 @@ pub fn find_bridges(nodes: &[Node], threshold_adjustment: f64) -> HashMap<usize,
                 .and_modify(|peers: &mut HashSet<usize>| {
                     peers.insert(*peer_idx);
                 })
-                .or_insert(HashSet::new())
+                .or_default()
                 .insert(*peer_idx);
 
             bridges
@@ -65,7 +65,7 @@ pub fn find_bridges(nodes: &[Node], threshold_adjustment: f64) -> HashMap<usize,
                 .and_modify(|peers: &mut HashSet<usize>| {
                     peers.insert(node_idx);
                 })
-                .or_insert(HashSet::new())
+                .or_default()
                 .insert(node_idx);
         }
     }

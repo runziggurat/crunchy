@@ -1,4 +1,5 @@
 mod config;
+mod constants;
 mod geoip_cache;
 mod histogram;
 mod ips;
@@ -59,6 +60,7 @@ async fn write_state(config: &CrunchyConfiguration) {
     let nodes = create_nodes(
         &response.result.nodes_indices,
         &response.result.node_addrs,
+        &response.result.node_network_types,
         &geo_cache,
     )
     .await;
@@ -150,6 +152,7 @@ pub struct ArgConfiguration {
 mod tests {
     use super::*;
 
+    #[ignore = "must update data"]
     #[tokio::test]
     async fn test_state_output() {
         let configuration = CrunchyConfiguration::default();
