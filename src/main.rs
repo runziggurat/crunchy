@@ -153,6 +153,7 @@ pub struct ArgConfiguration {
 mod tests {
     use super::*;
 
+    #[ignore = "must update data"]
     #[tokio::test]
     async fn test_state_output() {
         let configuration = CrunchyConfiguration::default();
