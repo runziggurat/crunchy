@@ -9,7 +9,7 @@ use std::{fs, path::PathBuf, time::Instant};
 
 use clap::Parser;
 use serde::{Deserialize, Serialize};
-use ziggurat_core_crawler::summary::NetworkSummary;
+use ziggurat_core_crawler::summary::{NetworkSummary, NetworkType};
 
 use crate::{
     config::CrunchyConfiguration,
@@ -79,7 +79,7 @@ async fn write_state(config: &CrunchyConfiguration) {
     }
 
     let mut ips = Ips::new(config.ips_config.clone());
-    let ips_peers = ips.generate(&state).await;
+    let ips_peers = ips.generate(&state, NetworkType::Zcash).await;
 
     let peerlist = serde_json::to_string(&ips_peers).unwrap();
     fs::write(config.ips_config.peer_file_path.as_ref().unwrap(), peerlist).unwrap();
