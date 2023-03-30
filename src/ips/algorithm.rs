@@ -23,12 +23,16 @@ use std::{
     net::SocketAddr,
 };
 
+use ziggurat_core_crawler::summary::NetworkType;
+
 use crate::{
     config::GeoLocationMode,
     constants::NUM_THREADS,
     ips::{
         config::IPSConfiguration,
-        graph_utils::{construct_graph, find_bridges, find_lowest_betweenness, remove_node},
+        graph_utils::{
+            construct_graph, filter_network, find_bridges, find_lowest_betweenness, remove_node,
+        },
         normalization::NormalizationFactors,
         peer::Peer,
         statistics::{
@@ -93,7 +97,7 @@ impl Ips {
     }
 
     /// Generate peer list - main function with The Algorithm
-    pub async fn generate(&mut self, state: &CrunchyState) -> Vec<Peer> {
+    pub async fn generate(&mut self, state: &CrunchyState, network: NetworkType) -> Vec<Peer> {
         // Set up logging
         let output = match self.config.log_path {
             Some(ref path) => File::create(path).map(|f| Box::new(f) as Box<dyn Write>),
@@ -128,10 +132,22 @@ impl Ips {
             }
         }
 
+        let network_nodes = filter_network(&state.nodes, network);
+
+        writeln!(
+            o,
+            "Network contains {} nodes and {} connections",
+            network_nodes.len(),
+            network_nodes
+                .iter()
+                .fold(0, |acc, n| acc + n.connections.len())
+        )
+        .unwrap();
+
         writeln!(o, "Generating initial network state and its statistics... ").unwrap();
 
         // This is the working set of factors.
-        let mut working_state = self.generate_state(&state.nodes, false);
+        let mut working_state = self.generate_state(&network_nodes, true);
         let mut final_state = working_state.clone();
 
         let initial_statistics = generate_statistics(&working_state);

@@ -33,7 +33,7 @@ impl Peer {
         };
 
         for peer in &node.connections {
-            if *peer >= nodes.len() {
+            if *peer >= nodes.len() || nodes[*peer].addr == node.addr {
                 continue;
             }
 

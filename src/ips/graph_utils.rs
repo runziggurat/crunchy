@@ -4,6 +4,7 @@ use std::{
 };
 
 use spectre::{edge::Edge, graph::Graph};
+use ziggurat_core_crawler::summary::NetworkType;
 
 use crate::{
     ips::{algorithm::IpsState, statistics::median},
@@ -79,7 +80,23 @@ pub fn construct_graph(nodes: &[Node]) -> Graph<SocketAddr> {
 
     for node in nodes {
         let node_addr = node.addr;
+
+        // This is a hack to add nodes that are not connected to any other node.
+        // This is needed to run some graph algorithms on the graph - like counting betweenness or
+        // closeness centrality as well as simple getting degree.
+        if node.connections.is_empty() {
+            graph.insert(Edge::new(node_addr, node_addr));
+            continue;
+        }
+
         for i in &node.connections {
+            if *i >= nodes.len() {
+                println!(
+                    "Node {} has connection to non-existing node {}",
+                    node_addr, i
+                );
+                continue;
+            }
             let edge = Edge::new(node_addr, nodes[*i].addr);
             graph.insert(edge);
         }
@@ -90,8 +107,9 @@ pub fn construct_graph(nodes: &[Node]) -> Graph<SocketAddr> {
 /// Removes node from the state and updates all indices in the peerlist
 pub fn remove_node(nodes: &mut Vec<Node>, node_idx: usize) {
     let node = nodes[node_idx].clone();
-    for peer_idx in node.connections.iter() {
-        nodes[*peer_idx].connections.retain(|x| *x != node_idx);
+
+    for rnode in nodes.iter_mut() {
+        rnode.connections.retain(|x| *x != node_idx);
     }
 
     nodes.retain(|x| x.addr != node.addr);
@@ -121,6 +139,31 @@ pub fn find_lowest_betweenness(nodes_idx: &[usize], state: &IpsState) -> usize {
     }
 
     lowest_betweenness_idx
+}
+
+/// Create new vector with nodes that have common network type.
+pub fn filter_network(nodes: &[Node], network: NetworkType) -> Vec<Node> {
+    let mut network_nodes = nodes.to_vec();
+
+    loop {
+        let mut found = false;
+
+        let len = network_nodes.len();
+        for idx in 0..len {
+            if network_nodes[idx].network_type != network {
+                remove_node(&mut network_nodes, idx);
+                found = true;
+                break;
+            }
+        }
+
+        // If we didn't find any node with different network type we can stop.
+        if !found {
+            break;
+        }
+    }
+
+    network_nodes
 }
 
 #[cfg(test)]
@@ -238,5 +281,74 @@ mod tests {
         let peers = bridges.get(&3).unwrap();
         assert_eq!(peers.len(), 1);
         assert!(peers.contains(&4));
+    }
+
+    #[test]
+    fn filter_network_test() {
+        let nodes = vec![
+            Node {
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(1, 0, 0, 0)), 1234),
+                connections: vec![1, 2],
+                network_type: NetworkType::Zcash,
+                ..Default::default()
+            },
+            Node {
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(2, 0, 0, 0)), 1234),
+                network_type: NetworkType::Zcash,
+                connections: vec![0, 2, 3],
+                ..Default::default()
+            },
+            Node {
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(3, 0, 0, 0)), 1234),
+                network_type: NetworkType::Unknown,
+                connections: vec![1, 3],
+                ..Default::default()
+            },
+            Node {
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(4, 0, 0, 0)), 1234),
+                network_type: NetworkType::Unknown,
+                connections: vec![1, 2, 4],
+                ..Default::default()
+            },
+            Node {
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(5, 0, 0, 0)), 1234),
+                network_type: NetworkType::Unknown,
+                connections: vec![3, 5, 7],
+                ..Default::default()
+            },
+            Node {
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(6, 0, 0, 0)), 1234),
+                network_type: NetworkType::Unknown,
+                connections: vec![4, 6],
+                ..Default::default()
+            },
+            Node {
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(7, 0, 0, 0)), 1234),
+                network_type: NetworkType::Zcash,
+                connections: vec![5, 7],
+                ..Default::default()
+            },
+            Node {
+                addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(8, 0, 0, 0)), 1234),
+                network_type: NetworkType::Unknown,
+                connections: vec![4, 6],
+                ..Default::default()
+            },
+        ];
+
+        let filtered = filter_network(&nodes, NetworkType::Zcash);
+        assert_eq!(filtered.len(), 3);
+        for node in filtered {
+            assert!(node.network_type == NetworkType::Zcash);
+        }
+
+        let filtered = filter_network(&nodes, NetworkType::Ripple);
+        assert_eq!(filtered.len(), 0);
+
+        let filtered = filter_network(&nodes, NetworkType::Unknown);
+        assert_eq!(filtered.len(), 5);
+        for node in filtered {
+            assert!(node.network_type == NetworkType::Unknown);
+        }
     }
 }
