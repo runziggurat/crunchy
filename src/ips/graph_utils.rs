@@ -145,6 +145,9 @@ pub fn find_lowest_betweenness(nodes_idx: &[usize], state: &IpsState) -> usize {
 pub fn filter_network(nodes: &[Node], network: NetworkType) -> Vec<Node> {
     let mut network_nodes = nodes.to_vec();
 
+    // We need to remove nodes that have different network type.
+    // Each iteration we remove one node and then we check if there are any other nodes with
+    // different network type. Then we begin new iteration getting new size of the vector.
     loop {
         let mut found = false;
 
