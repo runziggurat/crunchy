@@ -81,7 +81,9 @@ pub fn construct_graph(nodes: &[Node]) -> Graph<SocketAddr> {
     for node in nodes {
         let node_addr = node.addr;
 
-        // This is a hack to add nodes that are not connected to any other node.
+        // This is a hack to add nodes that are not connected to any other node. That can happen
+        // when are found through different network nodes. After filtering out that nodes it could
+        // be seen like some nodes are not connected to any other node.
         // This is needed to run some graph algorithms on the graph - like counting betweenness or
         // closeness centrality as well as simple getting degree.
         if node.connections.is_empty() {
