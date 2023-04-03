@@ -91,7 +91,14 @@ pub fn construct_graph(nodes: &[Node]) -> Graph<SocketAddr> {
 
         for i in &node.connections {
             if *i >= nodes.len() {
-                println!(
+                // This should not happen as we check if node has proper connection indexes when
+                // we take the snapshot of the state from external source. However, re-constructing
+                // graph from the nodes list that can be modified internally (eg. by removing nodes
+                // that has been found to be in different network than we would like to work over)
+                // could possibly lead to this situation. In such case ignore non-existing node
+                // and log the error. We need to skip this connection as it could lead to out of
+                // bounds error.
+                eprintln!(
                     "Node {} has connection to non-existing node {}",
                     node_addr, i
                 );
@@ -109,7 +116,9 @@ pub fn remove_node(nodes: &mut Vec<Node>, node_idx: usize) {
     let node = nodes[node_idx].clone();
 
     for rnode in nodes.iter_mut() {
-        rnode.connections.retain(|x| *x != node_idx);
+        if let Some(pos) = rnode.connections.iter().position(|x| *x == node_idx) {
+            rnode.connections.remove(pos);
+        }
     }
 
     nodes.retain(|x| x.addr != node.addr);
@@ -145,25 +154,17 @@ pub fn find_lowest_betweenness(nodes_idx: &[usize], state: &IpsState) -> usize {
 pub fn filter_network(nodes: &[Node], network: NetworkType) -> Vec<Node> {
     let mut network_nodes = nodes.to_vec();
 
-    // We need to remove nodes that have different network type.
-    // Each iteration we remove one node and then we check if there are any other nodes with
-    // different network type. Then we begin new iteration getting new size of the vector.
-    loop {
-        let mut found = false;
-
-        let len = network_nodes.len();
-        for idx in 0..len {
-            if network_nodes[idx].network_type != network {
-                remove_node(&mut network_nodes, idx);
-                found = true;
-                break;
-            }
+    // Two step here - first we collect all indices that we want to remove and then we remove them
+    // First step is using `rev` so we don't mess up the order of those found indices once we start removing them
+    let mut indices_to_remove = Vec::with_capacity(network_nodes.len());
+    for idx in (0..network_nodes.len()).rev() {
+        if network_nodes[idx].network_type != network {
+            indices_to_remove.push(idx);
         }
+    }
 
-        // If we didn't find any node with different network type we can stop.
-        if !found {
-            break;
-        }
+    for undesired_idx in indices_to_remove {
+        remove_node(&mut network_nodes, undesired_idx);
     }
 
     network_nodes
