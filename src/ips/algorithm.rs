@@ -17,6 +17,7 @@
 
 use std::{
     collections::{HashMap, HashSet, VecDeque},
+    fs,
     fs::File,
     io,
     io::Write,
@@ -161,6 +162,11 @@ impl Ips {
             start_time.elapsed().as_secs()
         )
         .unwrap();
+
+        if let Some(path) = &self.config.vanilla_peer_file_path {
+            let peerlist = serde_json::to_string(&working_state.peer_list).unwrap();
+            fs::write(path, peerlist).unwrap();
+        }
 
         // Phase 1: Security checks
 

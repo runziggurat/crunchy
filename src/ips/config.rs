@@ -39,6 +39,8 @@ pub struct IPSConfiguration {
     pub bridge_threshold_adjustment: f64,
     /// Multi-criteria analysis weights
     pub mcda_weights: MultiCriteriaAnalysisWeights,
+    /// If set, vanilla (original, before IPS) peer list should be generated in the specified file
+    pub vanilla_peer_file_path: Option<PathBuf>,
 }
 
 impl Default for IPSConfiguration {
@@ -52,6 +54,7 @@ impl Default for IPSConfiguration {
             change_no_more: 2,
             mcda_weights: MultiCriteriaAnalysisWeights::default(),
             bridge_threshold_adjustment: 1.25,
+            vanilla_peer_file_path: None,
         }
     }
 }
