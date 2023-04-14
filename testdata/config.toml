@@ -17,6 +17,7 @@ geolocation_minmax_distance_km = 1000
 change_at_least = 1
 change_no_more = 2
 bridge_threshold_adjustment = 1.25
+vanilla_peer_file_path = "testdata/vanilla-peers.json"
 
 [ips_config.mcda_weights]
 location = 0.3
