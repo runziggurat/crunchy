@@ -96,7 +96,6 @@ pub async fn create_nodes_filtered(
     let num_nodes = indices.len();
     let mut index_map: Vec<i32> = vec![0; num_nodes];
 
-
     // Create reindexing map using filter value
     //    a) the nodes we keep get new indexing, 0..N
     //    b) the nodes we don't want get -1
@@ -176,7 +175,7 @@ pub async fn create_nodes(
     node_network_types: &[NetworkType],
     geo_cache: &GeoIPCache,
 ) -> Vec<Node> {
-    if filter_type.is_some() && filter_type.unwrap() != NetworkType::Invalid {
+    if filter_type.is_some() {
         return create_nodes_filtered(
             filter_type.unwrap(),
             indices,

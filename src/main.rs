@@ -114,7 +114,11 @@ async fn main() {
         configuration.ips_config.peer_file_path = arg_conf.ips_file;
     }
 
-    // We check for Invalid filter type in the create nodes code.
+    // Check if user error setting optional filter type
+    if arg_conf.filter_type.is_some() && arg_conf.filter_type.unwrap() == NetworkType::Invalid {
+        panic!("Invalid network type for filter. Should be Zcash or Ripple.")
+    }
+
     configuration.network_type_filter = arg_conf.filter_type;
 
     if !configuration.input_file_path.as_ref().unwrap().is_file() {
