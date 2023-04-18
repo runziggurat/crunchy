@@ -111,7 +111,7 @@ pub async fn create_nodes_filtered(
 
     // index is the size of our new node indices object,
     // i.e., the new number of nodes.  Initialize it.
-    let mut new_indices: NodesIndices = vec!(Vec::<usize>::new(); index as usize);
+    let mut new_indices: NodesIndices = vec![Vec::<usize>::new(); index as usize];
 
     // Create new NodesIndices object using
     //   a) original indices
