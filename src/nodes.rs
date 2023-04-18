@@ -109,10 +109,9 @@ pub async fn create_nodes_filtered(
         }
     }
 
-    let mut new_indices: NodesIndices = Vec::with_capacity(index as usize);
-    for _ in 0..index {
-        new_indices.push(Vec::<usize>::new());
-    }
+    // index is the size of our new node indices object,
+    // i.e., the new number of nodes.  Initialize it.
+    let mut new_indices: NodesIndices = vec!(Vec::<usize>::new(); index as usize);
 
     // Create new NodesIndices object using
     //   a) original indices
