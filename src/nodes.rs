@@ -116,13 +116,15 @@ pub async fn create_nodes_filtered(
     // Create new NodesIndices object using
     //   a) original indices
     //   b) the index map
-    // We only keep connections where both nodes are in the index mape
+    // We only keep connections where both nodes are in the index map
     let mut graph = Graph::new();
     for (n, node) in indices.iter().enumerate() {
         let n_index: i32 = index_map[n];
         if n_index != -1 {
             node.iter()
                 .filter(|&connection| {
+                    // For each connection, we only add it once, so we use the connection
+                    // where source index is less than target
                     index_map[*connection] != -1 && index_map[*connection] > n_index
                 })
                 .for_each(|connection| {
