@@ -177,16 +177,16 @@ pub async fn create_nodes(
     geo_cache: &GeoIPCache,
 ) -> Vec<Node> {
     if filter_type.is_some() {
-        return create_nodes_filtered(
+        create_nodes_filtered(
             filter_type.unwrap(),
             indices,
             node_addrs,
             node_network_types,
             geo_cache,
         )
-        .await;
+        .await
     } else {
-        return create_nodes_unfiltered(indices, node_addrs, node_network_types, geo_cache).await;
+        create_nodes_unfiltered(indices, node_addrs, node_network_types, geo_cache).await
     }
 }
 
