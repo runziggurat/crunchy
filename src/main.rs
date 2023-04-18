@@ -58,6 +58,7 @@ async fn write_state(config: &CrunchyConfiguration) {
     geo_cache.configure_providers(&config.geoip_config);
 
     let nodes = create_nodes(
+        config.network_type_filter,
         &response.result.nodes_indices,
         &response.result.node_addrs,
         &response.result.node_network_types,
@@ -113,6 +114,9 @@ async fn main() {
         configuration.ips_config.peer_file_path = arg_conf.ips_file;
     }
 
+    // We check for Invalid filter type in the create nodes code.
+    configuration.network_type_filter = arg_conf.filter_type;
+
     if !configuration.input_file_path.as_ref().unwrap().is_file() {
         eprintln!(
             "{}: No such file or directory",
@@ -143,6 +147,9 @@ pub struct ArgConfiguration {
     /// Configuration file path (if none defaults will be assumed)
     #[clap(short, long, value_parser)]
     pub config_file: Option<PathBuf>,
+    /// Optional node filter as network type; e.g., Zcash
+    #[clap(short, long, value_parser)]
+    pub filter_type: Option<NetworkType>,
     /// Intelligent Peer Sharing output file path (overrides output from config file)
     #[clap(short = 'p', long, value_parser)]
     pub ips_file: Option<PathBuf>,
