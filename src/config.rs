@@ -2,6 +2,7 @@ use std::{fs, path::PathBuf};
 
 use anyhow::Result;
 use serde::Deserialize;
+use ziggurat_core_crawler::summary::NetworkType;
 
 use crate::ips::config::IPSConfiguration;
 
@@ -19,6 +20,8 @@ pub struct CrunchyConfiguration {
     pub geoip_config: GeoIPConfiguration,
     /// Configuration for Intelligent Peer Sharing module
     pub ips_config: IPSConfiguration,
+    /// Optional node filtering
+    pub network_type_filter: Option<NetworkType>,
 }
 
 /// Configuration for GeoIP module
@@ -66,6 +69,7 @@ impl Default for CrunchyConfiguration {
             state_file_path: Some(PathBuf::from("testdata/state.json")),
             ips_config: IPSConfiguration::default(),
             geoip_config: GeoIPConfiguration::default(),
+            network_type_filter: None,
         }
     }
 }

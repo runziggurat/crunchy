@@ -58,6 +58,7 @@ async fn write_state(config: &CrunchyConfiguration) {
     geo_cache.configure_providers(&config.geoip_config);
 
     let nodes = create_nodes(
+        config.network_type_filter,
         &response.result.nodes_indices,
         &response.result.node_addrs,
         &response.result.node_network_types,
@@ -113,6 +114,13 @@ async fn main() {
         configuration.ips_config.peer_file_path = arg_conf.ips_file;
     }
 
+    // Check if user error setting optional filter type
+    if arg_conf.filter_type.is_some() && arg_conf.filter_type.unwrap() == NetworkType::Invalid {
+        panic!("Invalid network type for filter. Check Readme for possible values.")
+    }
+
+    configuration.network_type_filter = arg_conf.filter_type;
+
     if !configuration.input_file_path.as_ref().unwrap().is_file() {
         eprintln!(
             "{}: No such file or directory",
@@ -143,6 +151,9 @@ pub struct ArgConfiguration {
     /// Configuration file path (if none defaults will be assumed)
     #[clap(short, long, value_parser)]
     pub config_file: Option<PathBuf>,
+    /// Optional node filtering parameter; consult Readme for possible values
+    #[clap(short, long, value_parser)]
+    pub filter_type: Option<NetworkType>,
     /// Intelligent Peer Sharing output file path (overrides output from config file)
     #[clap(short = 'p', long, value_parser)]
     pub ips_file: Option<PathBuf>,
@@ -150,28 +161,95 @@ pub struct ArgConfiguration {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
-    #[ignore = "must update data"]
+    use std::net::SocketAddr;
+
+    use super::*;
+    use crate::config::GeoIPConfiguration;
+
     #[tokio::test]
-    async fn test_state_output() {
-        let configuration = CrunchyConfiguration::default();
-        let _ = fs::remove_file(configuration.state_file_path.as_ref().unwrap());
-        write_state(&configuration).await;
-        let state = load_state(
-            configuration
-                .state_file_path
-                .as_ref()
-                .unwrap()
-                .to_str()
-                .unwrap(),
-        );
-        let size: usize = 2472;
-        assert_eq!(state.nodes.len(), size);
-        let node = state.nodes[5].clone();
-        assert_eq!(node.addr.to_string(), "95.216.80.108:16125");
-        assert_eq!(node.connections.len(), 372);
-        assert!((node.betweenness - 0.00022429039726952488).abs() < f64::EPSILON);
-        assert!((node.closeness - 1.998241968994726).abs() < f64::EPSILON);
+    async fn create_nodes_unfiltered_test() {
+        let response = load_response("testdata/sample.json");
+
+        let config = GeoIPConfiguration::default();
+        let mut geo_cache = GeoIPCache::new(&config);
+        geo_cache.configure_providers(&config);
+
+        let nodes = create_nodes(
+            None,
+            &response.result.nodes_indices,
+            &response.result.node_addrs,
+            &response.result.node_network_types,
+            &geo_cache,
+        )
+        .await;
+
+        assert_eq!(nodes.len(), 6103);
+        assert_eq!(nodes[0].connections.len(), 2478);
+        assert_eq!(nodes[1].connections.len(), 2216);
+        assert_eq!(nodes[2].connections.len(), 1);
+        assert_eq!(nodes[3].connections.len(), 2184);
+        assert_eq!(nodes[3].connections[2], 609);
+    }
+
+    #[tokio::test]
+    async fn create_nodes_filtered_test1() {
+        let indices = vec![vec![1, 2], vec![0, 2, 3], vec![0, 1, 3], vec![1, 2]];
+        let node_addrs = vec![
+            SocketAddr::from(([127, 0, 0, 1], 1234)),
+            SocketAddr::from(([127, 0, 0, 2], 1234)),
+            SocketAddr::from(([127, 0, 0, 3], 1234)),
+            SocketAddr::from(([127, 0, 0, 4], 1234)),
+        ];
+        let node_network_types = vec![
+            NetworkType::Unknown,
+            NetworkType::Zcash,
+            NetworkType::Unknown,
+            NetworkType::Zcash,
+        ];
+        let config = GeoIPConfiguration::default();
+        let mut geo_cache = GeoIPCache::new(&config);
+        geo_cache.configure_providers(&config);
+        let nodes = create_nodes(
+            Some(NetworkType::Zcash),
+            &indices,
+            &node_addrs,
+            &node_network_types,
+            &geo_cache,
+        )
+        .await;
+        assert_eq!(nodes.len(), 2);
+        assert_eq!(nodes[0].connections, vec![1]);
+        assert_eq!(nodes[1].connections, vec![0]);
+    }
+
+    #[tokio::test]
+    async fn create_nodes_filtered_test2() {
+        let response = load_response("testdata/sample.json");
+
+        let config = GeoIPConfiguration::default();
+        let mut geo_cache = GeoIPCache::new(&config);
+        geo_cache.configure_providers(&config);
+
+        let nodes = create_nodes(
+            Some(NetworkType::Zcash),
+            &response.result.nodes_indices,
+            &response.result.node_addrs,
+            &response.result.node_network_types,
+            &geo_cache,
+        )
+        .await;
+        assert_eq!(nodes.len(), 122);
+        assert_eq!(nodes[0].connections.len(), 2);
+        assert_eq!(nodes[1].connections.len(), 0);
+        assert_eq!(nodes[2].connections.len(), 1);
+        assert_eq!(nodes[3].connections.len(), 1);
+        assert_eq!(nodes[3].connections[0], 56);
+
+        let node = nodes[0].clone();
+        assert_eq!(node.addr.to_string(), "3.72.134.66:8233");
+        let epsilon: f64 = 0.0000001;
+        assert!((node.betweenness - 47.525898078529664).abs() < epsilon);
+        assert!((node.closeness - 1.603305785123967).abs() < epsilon);
     }
 }
