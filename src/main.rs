@@ -116,7 +116,7 @@ async fn main() {
 
     // Check if user error setting optional filter type
     if arg_conf.filter_type.is_some() && arg_conf.filter_type.unwrap() == NetworkType::Invalid {
-        panic!("Invalid network type for filter. Should be Zcash or Ripple.")
+        panic!("Invalid network type for filter. Check Readme for possible values.")
     }
 
     configuration.network_type_filter = arg_conf.filter_type;
@@ -151,7 +151,7 @@ pub struct ArgConfiguration {
     /// Configuration file path (if none defaults will be assumed)
     #[clap(short, long, value_parser)]
     pub config_file: Option<PathBuf>,
-    /// Optional node filter as network type; e.g., Zcash
+    /// Optional node filtering parameter; consult Readme for possible values
     #[clap(short, long, value_parser)]
     pub filter_type: Option<NetworkType>,
     /// Intelligent Peer Sharing output file path (overrides output from config file)

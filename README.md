@@ -61,7 +61,10 @@ Options:
   -o, --out-state <OUT_STATE>          Output file with state of the graph (overrides output from config file)
   -g, --geocache-file <GEOCACHE_FILE>  Output file with geolocation cache (overrides cache from config file)
   -c, --config-file <CONFIG_FILE>      Configuration file path (if none defaults will be assumed)
-  -f, --filter-type <FILTER_TYPE>      Optional node filtering by network type, e.g. 'Zcash'
+  -f, --filter-type <FILTER_TYPE>      Optional node filtering parameter, currently supported values:
+                                          Zcash
+                                          Ripple
+                                          Unknown
   -h, --help                           Print help
   -V, --version                        Print version
 ```
