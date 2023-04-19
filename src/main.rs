@@ -194,7 +194,6 @@ mod tests {
 
     #[tokio::test]
     async fn create_nodes_filtered_test1() {
-        //    let response = load_response(config.input_file_path.as_ref().unwrap().to_str().
         let indices = vec![vec![1, 2], vec![0, 2, 3], vec![0, 1, 3], vec![1, 2]];
         let node_addrs = vec![
             SocketAddr::from(([127, 0, 0, 1], 1234)),
