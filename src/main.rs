@@ -1,5 +1,4 @@
 mod config;
-mod constants;
 mod geoip_cache;
 mod histogram;
 mod ips;
@@ -63,6 +62,7 @@ async fn write_state(config: &CrunchyConfiguration) {
         &response.result.node_addrs,
         &response.result.node_network_types,
         &geo_cache,
+        config.num_threads,
     )
     .await;
 
@@ -80,7 +80,9 @@ async fn write_state(config: &CrunchyConfiguration) {
     }
 
     let mut ips = Ips::new(config.ips_config.clone());
-    let ips_peers = ips.generate(&state, NetworkType::Zcash).await;
+    let ips_peers = ips
+        .generate(&state, NetworkType::Zcash, config.num_threads)
+        .await;
 
     let peerlist = serde_json::to_string(&ips_peers).unwrap();
     fs::write(config.ips_config.peer_file_path.as_ref().unwrap(), peerlist).unwrap();
@@ -112,6 +114,9 @@ async fn main() {
     }
     if arg_conf.ips_file.is_some() {
         configuration.ips_config.peer_file_path = arg_conf.ips_file;
+    }
+    if let Some(num_threads) = arg_conf.num_threads {
+        configuration.num_threads = num_threads;
     }
 
     // Check if user error setting optional filter type
@@ -154,9 +159,12 @@ pub struct ArgConfiguration {
     /// Optional node filtering parameter; consult Readme for possible values
     #[clap(short, long, value_parser)]
     pub filter_type: Option<NetworkType>,
-    /// Intelligent Peer Sharing output file path (overrides output from config file)
+    /// Intelligent Peer Sharing output file path (overrides filter type from config file)
     #[clap(short = 'p', long, value_parser)]
     pub ips_file: Option<PathBuf>,
+    /// Number of threads to use for calculations (overrides number of threads from config file)
+    #[clap(short = 'j', long, value_parser)]
+    pub num_threads: Option<usize>,
 }
 
 #[cfg(test)]
@@ -165,7 +173,7 @@ mod tests {
     use std::net::SocketAddr;
 
     use super::*;
-    use crate::config::GeoIPConfiguration;
+    use crate::config::{GeoIPConfiguration, DEFAULT_NUM_THREADS};
 
     #[tokio::test]
     async fn create_nodes_unfiltered_test() {
@@ -181,6 +189,7 @@ mod tests {
             &response.result.node_addrs,
             &response.result.node_network_types,
             &geo_cache,
+            DEFAULT_NUM_THREADS,
         )
         .await;
 
@@ -216,6 +225,7 @@ mod tests {
             &node_addrs,
             &node_network_types,
             &geo_cache,
+            DEFAULT_NUM_THREADS,
         )
         .await;
         assert_eq!(nodes.len(), 2);
@@ -237,6 +247,7 @@ mod tests {
             &response.result.node_addrs,
             &response.result.node_network_types,
             &geo_cache,
+            DEFAULT_NUM_THREADS,
         )
         .await;
         assert_eq!(nodes.len(), 122);

@@ -8,6 +8,8 @@ use crate::ips::config::IPSConfiguration;
 
 /// Default number of days to keep each entry in cache
 pub const DEFAULT_KEEP_IN_CACHE_DAYS: u16 = 14;
+/// Default number of threads to use
+pub const DEFAULT_NUM_THREADS: usize = 8;
 
 /// Main configuration structure
 #[derive(Debug, Clone, Deserialize)]
@@ -22,6 +24,8 @@ pub struct CrunchyConfiguration {
     pub ips_config: IPSConfiguration,
     /// Optional node filtering
     pub network_type_filter: Option<NetworkType>,
+    /// Number of threads to use
+    pub num_threads: usize,
 }
 
 /// Configuration for GeoIP module
@@ -70,6 +74,7 @@ impl Default for CrunchyConfiguration {
             ips_config: IPSConfiguration::default(),
             geoip_config: GeoIPConfiguration::default(),
             network_type_filter: None,
+            num_threads: DEFAULT_NUM_THREADS,
         }
     }
 }

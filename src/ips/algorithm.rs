@@ -28,7 +28,6 @@ use ziggurat_core_crawler::summary::NetworkType;
 
 use crate::{
     config::GeoLocationMode,
-    constants::NUM_THREADS,
     ips::{
         config::IPSConfiguration,
         graph_utils::{
@@ -98,7 +97,12 @@ impl Ips {
     }
 
     /// Generate peer list - main function with The Algorithm
-    pub async fn generate(&mut self, state: &CrunchyState, network: NetworkType) -> Vec<Peer> {
+    pub async fn generate(
+        &mut self,
+        state: &CrunchyState,
+        network: NetworkType,
+        num_threads: usize,
+    ) -> Vec<Peer> {
         // Set up logging
         let output = match self.config.log_path {
             Some(ref path) => File::create(path).map(|f| Box::new(f) as Box<dyn Write>),
@@ -148,7 +152,7 @@ impl Ips {
         writeln!(o, "Generating initial network state and its statistics... ").unwrap();
 
         // This is the working set of factors.
-        let mut working_state = self.generate_state(&network_nodes, true);
+        let mut working_state = self.generate_state(&network_nodes, true, num_threads);
         let mut final_state = working_state.clone();
 
         let initial_statistics = generate_statistics(&working_state);
@@ -204,7 +208,7 @@ impl Ips {
 
         if !self.check_and_fix_integrity_upon_removal(&mut working_state) {
             writeln!(o, "There were hot nodes that can be dangerous for the network! Recalculating graph...").unwrap();
-            working_state = self.generate_state(&working_state.nodes, true);
+            working_state = self.generate_state(&working_state.nodes, true, num_threads);
         } else {
             // There are no hot nodes
             writeln!(o, "IPS detected no fragmentation possibility even when top nodes would be disconnected").unwrap();
@@ -388,7 +392,7 @@ impl Ips {
         )
         .unwrap();
 
-        final_state = self.generate_state(&final_state.nodes, true);
+        final_state = self.generate_state(&final_state.nodes, true, num_threads);
 
         let final_statistics = generate_statistics(&final_state);
         writeln!(o, "Statistics for the final network:").unwrap();
@@ -479,7 +483,7 @@ impl Ips {
     /// Generate state for IPS
     /// If generate_full is true, then it will generate full state for IPS. If false then
     /// it will not re-run betweenness and closeness centrality calculations.
-    fn generate_state(&self, nodes: &[Node], generate_full: bool) -> IpsState {
+    fn generate_state(&self, nodes: &[Node], generate_full: bool, num_threads: usize) -> IpsState {
         let mut ips_state = IpsState {
             nodes: nodes.to_vec(),
             ..Default::default()
@@ -488,8 +492,8 @@ impl Ips {
         let mut graph = construct_graph(nodes);
 
         if generate_full {
-            let betweenness = graph.betweenness_centrality(NUM_THREADS, false);
-            let closeness = graph.closeness_centrality(NUM_THREADS);
+            let closeness = graph.closeness_centrality(num_threads);
+            let betweenness = graph.betweenness_centrality(num_threads, false);
 
             // Recalculate factors with new graph
             for node in ips_state.nodes.iter_mut() {
@@ -675,6 +679,7 @@ mod tests {
     use spectre::{edge::Edge, graph::Graph};
 
     use super::*;
+    use crate::config::DEFAULT_NUM_THREADS;
 
     pub const ERR_PARSE_IP: &str = "failed to parse IP address";
 
@@ -701,7 +706,7 @@ mod tests {
             },
         ];
 
-        let state = ips.generate_state(&nodes, true);
+        let state = ips.generate_state(&nodes, true, DEFAULT_NUM_THREADS);
 
         assert_eq!(ips.rate_node(nodes.get(0).unwrap(), &state), 10.0);
     }
