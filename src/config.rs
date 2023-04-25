@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::{fs, path::PathBuf, thread};
 
 use anyhow::Result;
 use serde::Deserialize;
@@ -22,6 +22,8 @@ pub struct CrunchyConfiguration {
     pub ips_config: IPSConfiguration,
     /// Optional node filtering
     pub network_type_filter: Option<NetworkType>,
+    /// Number of threads to use
+    pub num_threads: usize,
 }
 
 /// Configuration for GeoIP module
@@ -70,6 +72,7 @@ impl Default for CrunchyConfiguration {
             ips_config: IPSConfiguration::default(),
             geoip_config: GeoIPConfiguration::default(),
             network_type_filter: None,
+            num_threads: thread::available_parallelism().unwrap().get(),
         }
     }
 }

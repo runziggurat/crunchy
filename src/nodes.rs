@@ -5,7 +5,7 @@ use spectre::{edge::Edge, graph::Graph};
 use ziggurat_core_crawler::summary::{NetworkType, NodesIndices};
 use ziggurat_core_geoip::geoip::GeoInfo;
 
-use crate::{constants::NUM_THREADS, geoip_cache::GeoIPCache, histogram::Histogram};
+use crate::{geoip_cache::GeoIPCache, histogram::Histogram};
 
 const HISTOGRAM_COUNTS: usize = 256;
 
@@ -54,6 +54,7 @@ pub async fn create_nodes_unfiltered(
     node_addrs: &[SocketAddr],
     node_network_types: &[NetworkType],
     geo_cache: &GeoIPCache,
+    num_threads: usize,
 ) -> Vec<Node> {
     let mut graph = Graph::new();
     for (n, node) in indices.iter().enumerate() {
@@ -64,8 +65,8 @@ pub async fn create_nodes_unfiltered(
             });
     }
 
-    let betweenness = graph.betweenness_centrality(NUM_THREADS, false);
-    let closeness = graph.closeness_centrality(NUM_THREADS);
+    let betweenness = graph.betweenness_centrality(num_threads, false);
+    let closeness = graph.closeness_centrality(num_threads);
     let mut nodes = Vec::with_capacity(indices.len());
 
     for i in 0..indices.len() {
@@ -92,6 +93,7 @@ pub async fn create_nodes_filtered(
     node_addrs: &[SocketAddr],
     node_network_types: &[NetworkType],
     geo_cache: &GeoIPCache,
+    num_threads: usize,
 ) -> Vec<Node> {
     let num_nodes = indices.len();
 
@@ -141,8 +143,8 @@ pub async fn create_nodes_filtered(
         }
     }
 
-    let betweenness = graph.betweenness_centrality(NUM_THREADS, false);
-    let closeness = graph.closeness_centrality(NUM_THREADS);
+    let betweenness = graph.betweenness_centrality(num_threads, false);
+    let closeness = graph.closeness_centrality(num_threads);
     let mut nodes = Vec::with_capacity(indices.len());
 
     // here we use the original indexing, because of the node addrs array
@@ -173,18 +175,30 @@ pub async fn create_nodes(
     node_addrs: &[SocketAddr],
     node_network_types: &[NetworkType],
     geo_cache: &GeoIPCache,
+    num_threads: usize,
 ) -> Vec<Node> {
-    if let Some(filter_type) = filter_type {
-        create_nodes_filtered(
-            filter_type,
-            indices,
-            node_addrs,
-            node_network_types,
-            geo_cache,
-        )
-        .await
-    } else {
-        create_nodes_unfiltered(indices, node_addrs, node_network_types, geo_cache).await
+    match filter_type {
+        Some(network_type) => {
+            create_nodes_filtered(
+                network_type,
+                indices,
+                node_addrs,
+                node_network_types,
+                geo_cache,
+                num_threads,
+            )
+            .await
+        }
+        None => {
+            create_nodes_unfiltered(
+                indices,
+                node_addrs,
+                node_network_types,
+                geo_cache,
+                num_threads,
+            )
+            .await
+        }
     }
 }
 

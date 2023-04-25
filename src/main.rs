@@ -1,5 +1,4 @@
 mod config;
-mod constants;
 mod geoip_cache;
 mod histogram;
 mod ips;
@@ -63,6 +62,7 @@ async fn write_state(config: &CrunchyConfiguration) {
         &response.result.node_addrs,
         &response.result.node_network_types,
         &geo_cache,
+        config.num_threads,
     )
     .await;
 
@@ -80,7 +80,9 @@ async fn write_state(config: &CrunchyConfiguration) {
     }
 
     let mut ips = Ips::new(config.ips_config.clone());
-    let ips_peers = ips.generate(&state, NetworkType::Zcash).await;
+    let ips_peers = ips
+        .generate(&state, NetworkType::Zcash, config.num_threads)
+        .await;
 
     let peerlist = serde_json::to_string(&ips_peers).unwrap();
     fs::write(config.ips_config.peer_file_path.as_ref().unwrap(), peerlist).unwrap();
@@ -112,6 +114,9 @@ async fn main() {
     }
     if arg_conf.ips_file.is_some() {
         configuration.ips_config.peer_file_path = arg_conf.ips_file;
+    }
+    if let Some(num_threads) = arg_conf.num_threads {
+        configuration.num_threads = num_threads;
     }
 
     // Check if user error setting optional filter type
@@ -151,18 +156,21 @@ pub struct ArgConfiguration {
     /// Configuration file path (if none defaults will be assumed)
     #[clap(short, long, value_parser)]
     pub config_file: Option<PathBuf>,
+    /// Intelligent Peer Sharing output file path (overrides ips from config file)
+    #[clap(short = 'p', long, value_parser)]
+    pub ips_file: Option<PathBuf>,
+    /// Number of threads to use for calculations (overrides number of threads from config file)
+    #[clap(short = 'j', long, value_parser)]
+    pub num_threads: Option<usize>,
     /// Optional node filtering parameter; consult Readme for possible values
     #[clap(short, long, value_parser)]
     pub filter_type: Option<NetworkType>,
-    /// Intelligent Peer Sharing output file path (overrides output from config file)
-    #[clap(short = 'p', long, value_parser)]
-    pub ips_file: Option<PathBuf>,
 }
 
 #[cfg(test)]
 mod tests {
 
-    use std::net::SocketAddr;
+    use std::{net::SocketAddr, thread};
 
     use super::*;
     use crate::config::GeoIPConfiguration;
@@ -175,12 +183,14 @@ mod tests {
         let mut geo_cache = GeoIPCache::new(&config);
         geo_cache.configure_providers(&config);
 
+        let num_threads = thread::available_parallelism().unwrap().get();
         let nodes = create_nodes(
             None,
             &response.result.nodes_indices,
             &response.result.node_addrs,
             &response.result.node_network_types,
             &geo_cache,
+            num_threads,
         )
         .await;
 
@@ -210,12 +220,15 @@ mod tests {
         let config = GeoIPConfiguration::default();
         let mut geo_cache = GeoIPCache::new(&config);
         geo_cache.configure_providers(&config);
+
+        let num_threads = thread::available_parallelism().unwrap().get();
         let nodes = create_nodes(
             Some(NetworkType::Zcash),
             &indices,
             &node_addrs,
             &node_network_types,
             &geo_cache,
+            num_threads,
         )
         .await;
         assert_eq!(nodes.len(), 2);
@@ -231,12 +244,14 @@ mod tests {
         let mut geo_cache = GeoIPCache::new(&config);
         geo_cache.configure_providers(&config);
 
+        let num_threads = thread::available_parallelism().unwrap().get();
         let nodes = create_nodes(
             Some(NetworkType::Zcash),
             &response.result.nodes_indices,
             &response.result.node_addrs,
             &response.result.node_network_types,
             &geo_cache,
+            num_threads,
         )
         .await;
         assert_eq!(nodes.len(), 122);
