@@ -156,15 +156,15 @@ pub struct ArgConfiguration {
     /// Configuration file path (if none defaults will be assumed)
     #[clap(short, long, value_parser)]
     pub config_file: Option<PathBuf>,
-    /// Optional node filtering parameter; consult Readme for possible values
-    #[clap(short, long, value_parser)]
-    pub filter_type: Option<NetworkType>,
-    /// Intelligent Peer Sharing output file path (overrides filter type from config file)
+    /// Intelligent Peer Sharing output file path (overrides ips from config file)
     #[clap(short = 'p', long, value_parser)]
     pub ips_file: Option<PathBuf>,
     /// Number of threads to use for calculations (overrides number of threads from config file)
     #[clap(short = 'j', long, value_parser)]
     pub num_threads: Option<usize>,
+    /// Optional node filtering parameter; consult Readme for possible values
+    #[clap(short, long, value_parser)]
+    pub filter_type: Option<NetworkType>,
 }
 
 #[cfg(test)]

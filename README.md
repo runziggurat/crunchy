@@ -1,8 +1,8 @@
+# crunchy
+
 [![dependency status](https://deps.rs/repo/github/runziggurat/crunchy/status.svg)](https://deps.rs/repo/github/runziggurat/crunchy)
 
-# crunchy
 P2P network crawler data cruncher for graph metrics
-
 
 # Running
 
@@ -61,6 +61,8 @@ Options:
   -o, --out-state <OUT_STATE>          Output file with state of the graph (overrides output from config file)
   -g, --geocache-file <GEOCACHE_FILE>  Output file with geolocation cache (overrides cache from config file)
   -c, --config-file <CONFIG_FILE>      Configuration file path (if none defaults will be assumed)
+  -p, --ips-file <IPS_FILE>            Intelligent Peer Sharing output file path (overrides ips from config file)
+  -j, --num-threads <NUM_THREADS>      Number of threads to use for calculations (overrides number of threads from config file)
   -f, --filter-type <FILTER_TYPE>      Optional node filtering parameter, currently supported values:
                                           Zcash
                                           Ripple
