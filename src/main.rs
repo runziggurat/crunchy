@@ -170,10 +170,10 @@ pub struct ArgConfiguration {
 #[cfg(test)]
 mod tests {
 
-    use std::net::SocketAddr;
+    use std::{net::SocketAddr, thread};
 
     use super::*;
-    use crate::config::{GeoIPConfiguration, DEFAULT_NUM_THREADS};
+    use crate::config::GeoIPConfiguration;
 
     #[tokio::test]
     async fn create_nodes_unfiltered_test() {
@@ -183,13 +183,14 @@ mod tests {
         let mut geo_cache = GeoIPCache::new(&config);
         geo_cache.configure_providers(&config);
 
+        let num_threads = thread::available_parallelism().unwrap().get();
         let nodes = create_nodes(
             None,
             &response.result.nodes_indices,
             &response.result.node_addrs,
             &response.result.node_network_types,
             &geo_cache,
-            DEFAULT_NUM_THREADS,
+            num_threads,
         )
         .await;
 
@@ -219,13 +220,15 @@ mod tests {
         let config = GeoIPConfiguration::default();
         let mut geo_cache = GeoIPCache::new(&config);
         geo_cache.configure_providers(&config);
+
+        let num_threads = thread::available_parallelism().unwrap().get();
         let nodes = create_nodes(
             Some(NetworkType::Zcash),
             &indices,
             &node_addrs,
             &node_network_types,
             &geo_cache,
-            DEFAULT_NUM_THREADS,
+            num_threads,
         )
         .await;
         assert_eq!(nodes.len(), 2);
@@ -241,13 +244,14 @@ mod tests {
         let mut geo_cache = GeoIPCache::new(&config);
         geo_cache.configure_providers(&config);
 
+        let num_threads = thread::available_parallelism().unwrap().get();
         let nodes = create_nodes(
             Some(NetworkType::Zcash),
             &response.result.nodes_indices,
             &response.result.node_addrs,
             &response.result.node_network_types,
             &geo_cache,
-            DEFAULT_NUM_THREADS,
+            num_threads,
         )
         .await;
         assert_eq!(nodes.len(), 122);

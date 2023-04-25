@@ -674,12 +674,12 @@ mod tests {
     use std::{
         net::{IpAddr, Ipv4Addr, SocketAddr},
         str::FromStr,
+        thread,
     };
 
     use spectre::{edge::Edge, graph::Graph};
 
     use super::*;
-    use crate::config::DEFAULT_NUM_THREADS;
 
     pub const ERR_PARSE_IP: &str = "failed to parse IP address";
 
@@ -706,7 +706,8 @@ mod tests {
             },
         ];
 
-        let state = ips.generate_state(&nodes, true, DEFAULT_NUM_THREADS);
+        let num_threads = thread::available_parallelism().unwrap().get();
+        let state = ips.generate_state(&nodes, true, num_threads);
 
         assert_eq!(ips.rate_node(nodes.get(0).unwrap(), &state), 10.0);
     }
