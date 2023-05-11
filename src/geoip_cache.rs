@@ -127,6 +127,12 @@ impl GeoIPCache {
     /// Configure the providers based on the configuration.
     pub fn configure_providers(&mut self, config: &GeoIPConfiguration) {
         if config.ip2location_enable {
+            let ipv6db = if let Some(path) = &config.ip2location_ipv6_db_path {
+                Some(path.as_path().display().to_string())
+            } else {
+                None
+            };
+
             self.add_provider(Box::new(Ip2LocationService::new(
                 config
                     .ip2location_db_path
@@ -134,6 +140,7 @@ impl GeoIPCache {
                     .unwrap()
                     .to_str()
                     .unwrap(),
+                ipv6db,
             )));
         }
 

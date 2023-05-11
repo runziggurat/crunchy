@@ -37,6 +37,8 @@ pub struct GeoIPConfiguration {
     pub ip2location_enable: bool,
     /// Path to the IP2Location database
     pub ip2location_db_path: Option<PathBuf>,
+    /// Path to the IP2Location database for IPv6 if applicable
+    pub ip2location_ipv6_db_path: Option<PathBuf>,
     /// Enable ipapi.co provider
     pub ipapico_enable: bool,
     /// API key for ipapi.co provider
@@ -84,6 +86,7 @@ impl Default for GeoIPConfiguration {
             keep_in_cache_days: Some(DEFAULT_KEEP_IN_CACHE_DAYS),
             ip2location_enable: true,
             ip2location_db_path: Some(PathBuf::from("IP2LOCATION-LITE-DB11.BIN")),
+            ip2location_ipv6_db_path: Some(PathBuf::from("IP2LOCATION-LITE-DB11.IPV6.BIN")),
             ipapico_enable: true,
             ipapico_api_key: Some(String::from("")),
             ipapicom_enable: true,
