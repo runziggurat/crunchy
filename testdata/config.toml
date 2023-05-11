@@ -1,11 +1,13 @@
 input_file_path = "testdata/sample.json"
 state_file_path = "testdata/state.json"
+num_threads = 8
 
 [geoip_config]
 geocache_file_path = "testdata/geoip-cache.json"
 keep_in_cache_days = 14
 ip2location_enable = true
 ip2location_db_path = "IP2LOCATION-LITE-DB11.BIN"
+ip2location_ipv6_db_path = "IP2LOCATION-LITE-DB11.IPV6.BIN"
 ipapico_enable = false
 ipapicom_enable = false
 
